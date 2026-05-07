@@ -16,6 +16,12 @@
 
     <dependencies>
 
+        <dependency>
+            <groupId>org.swinglabs</groupId>
+            <artifactId>swingx</artifactId>
+            <version>1.6.1</version>
+        </dependency>
+
         <!-- MySQL -->
         <dependency>
             <groupId>com.mysql</groupId>
@@ -36,6 +42,8 @@
             <artifactId>itext7-core</artifactId>
             <version>8.0.2</version>
         </dependency>
+
+
 
     </dependencies>
 

@@ -6,6 +6,9 @@ import dao.VariableExpenseDAO;
 import model.FixedExpense;
 import model.FixedExpenseHistory;
 import model.VariableExpense;
+import org.jdesktop.swingx.JXDatePicker;
+import java.util.Date;
+import java.time.ZoneId;
 
 import javax.swing.*;
 import javax.swing.table.DefaultTableModel;
@@ -494,6 +497,7 @@ public class ExpenseFrame extends JFrame {
     }
 
     private void markFixedExpenseAsPaid() {
+
         int id = getSelectedId(fixedExpenseTable);
 
         if (id == -1) {
@@ -501,9 +505,38 @@ public class ExpenseFrame extends JFrame {
             return;
         }
 
-        fixedExpenseDAO.markAsPaid(id, LocalDate.now());
-        loadFixedExpenses();
-        showSuccess("Despesa fixa marcada como paga!");
+        JXDatePicker datePicker = new JXDatePicker();
+        datePicker.setDate(new java.util.Date());
+
+        int option = JOptionPane.showConfirmDialog(
+                this,
+                datePicker,
+                "Informe a data do pagamento",
+                JOptionPane.OK_CANCEL_OPTION,
+                JOptionPane.PLAIN_MESSAGE
+        );
+
+        if (option != JOptionPane.OK_OPTION || datePicker.getDate() == null) {
+            return;
+        }
+
+        try {
+
+            LocalDate paymentDate = datePicker.getDate()
+                    .toInstant()
+                    .atZone(ZoneId.systemDefault())
+                    .toLocalDate();
+
+            fixedExpenseDAO.markAsPaid(id, paymentDate);
+
+            loadFixedExpenses();
+
+            showSuccess("Despesa fixa marcada como paga!");
+
+        } catch (Exception e) {
+
+            showError("Erro ao marcar despesa como paga: " + e.getMessage());
+        }
     }
 
     private void generateMonthlyFixedExpenses() {

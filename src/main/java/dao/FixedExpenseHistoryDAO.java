@@ -14,7 +14,11 @@ import java.util.List;
 public class FixedExpenseHistoryDAO {
 
     public void generateMonthlyExpenses(int month, int year) {
-        String selectSql = "SELECT * FROM fixed_expense";
+        String selectSql = """
+    SELECT *
+    FROM fixed_expense
+    WHERE active = 1
+    """;
 
         String checkSql = """
             SELECT COUNT(*) AS total
@@ -63,14 +67,8 @@ public class FixedExpenseHistoryDAO {
                 insertStmt.setBigDecimal(3, rs.getBigDecimal("amount"));
                 insertStmt.setDate(4, java.sql.Date.valueOf(dueDate));
 
-                boolean status = rs.getBoolean("status");
-                insertStmt.setBoolean(5, status);
-
-                if (rs.getDate("payment_date") != null) {
-                    insertStmt.setDate(6, rs.getDate("payment_date"));
-                } else {
-                    insertStmt.setNull(6, java.sql.Types.DATE);
-                }
+                insertStmt.setBoolean(5, false);
+                insertStmt.setNull(6, java.sql.Types.DATE);
 
                 insertStmt.executeUpdate();
             }
