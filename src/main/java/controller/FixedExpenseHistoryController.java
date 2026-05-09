@@ -43,7 +43,7 @@ public class FixedExpenseHistoryController {
         printList(list);
     }
 
-    public void listByStatus(LocalDate start, LocalDate end, boolean status) {
+    public void listByStatus(LocalDate start, LocalDate end, String status) {
 
         if (start.isAfter(end)) {
             System.out.println("Erro: data inicial maior que final.");
@@ -55,7 +55,7 @@ public class FixedExpenseHistoryController {
         boolean found = false;
 
         for (FixedExpenseHistory h : list) {
-            if (h.isStatus() == status) {
+            if (h.getStatus() != null && h.getStatus().equalsIgnoreCase(status)) {
                 printExpense(h);
                 found = true;
             }
@@ -100,7 +100,7 @@ public class FixedExpenseHistoryController {
                         h.getName() + " | " +
                         "R$ " + h.getAmount() + " | " +
                         "Vencimento: " + h.getDueDate() + " | " +
-                        (h.isStatus() ? "PAGO" : "PENDENTE") + " | " +
+                        h.getStatus() + " | " +
                         "Pagamento: " + h.getPaymentDate()
         );
     }

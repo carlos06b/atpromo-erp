@@ -67,13 +67,33 @@ public class FixedExpenseHistoryDAO {
                 insertStmt.setBigDecimal(3, rs.getBigDecimal("amount"));
                 insertStmt.setDate(4, java.sql.Date.valueOf(dueDate));
 
-                insertStmt.setBoolean(5, false);
+                insertStmt.setString(5, "PENDENTE");
                 insertStmt.setNull(6, java.sql.Types.DATE);
 
                 insertStmt.executeUpdate();
             }
 
             System.out.println("Despesas fixas do mês geradas com sucesso!");
+
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
+    public void cancel(int id) {
+        String sql = """
+            UPDATE fixed_expense_history
+            SET status = 'CANCELADO',
+                payment_date = NULL
+            WHERE id = ?
+            AND status <> 'PAGO'
+            """;
+
+        try (Connection conn = ConnectionFactory.getConnection();
+             PreparedStatement stmt = conn.prepareStatement(sql)) {
+
+            stmt.setInt(1, id);
+            stmt.executeUpdate();
 
         } catch (Exception e) {
             e.printStackTrace();
@@ -103,7 +123,7 @@ public class FixedExpenseHistoryDAO {
                 h.setName(rs.getString("name"));
                 h.setAmount(rs.getBigDecimal("amount"));
                 h.setDueDate(rs.getDate("due_date").toLocalDate());
-                h.setStatus(rs.getBoolean("status"));
+                h.setStatus(rs.getString("status"));
 
                 if (rs.getDate("payment_date") != null) {
                     h.setPaymentDate(rs.getDate("payment_date").toLocalDate());
@@ -121,7 +141,7 @@ public class FixedExpenseHistoryDAO {
 
     public void markAsPaid(int id, LocalDate paymentDate) {
 
-        String sql = "UPDATE fixed_expense_history SET status = true, payment_date = ? WHERE id = ?";
+        String sql = "UPDATE fixed_expense_history SET status = 'PAGO', payment_date = ? WHERE id = ?";
 
         try (Connection conn = ConnectionFactory.getConnection();
              PreparedStatement stmt = conn.prepareStatement(sql)) {
@@ -136,6 +156,26 @@ public class FixedExpenseHistoryDAO {
             } else {
                 System.out.println("Despesa fixa mensal não encontrada.");
             }
+
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
+    public void updateAmount(int id, BigDecimal amount) {
+        String sql = """
+            UPDATE fixed_expense_history
+            SET amount = ?
+            WHERE id = ?
+            """;
+
+        try (Connection conn = ConnectionFactory.getConnection();
+             PreparedStatement stmt = conn.prepareStatement(sql)) {
+
+            stmt.setBigDecimal(1, amount);
+            stmt.setInt(2, id);
+
+            stmt.executeUpdate();
 
         } catch (Exception e) {
             e.printStackTrace();

@@ -266,8 +266,8 @@ public class Main {
                     controller.generateMonthlyExpenses(month, year);
                 }
                 case 2 -> listFixedExpenseHistoryByPeriod(sc, controller);
-                case 3 -> listFixedExpenseHistoryByStatus(sc, controller, false);
-                case 4 -> listFixedExpenseHistoryByStatus(sc, controller, true);
+                case 3 -> listFixedExpenseHistoryByStatus(sc, controller, "PENDENTE");
+                case 4 -> listFixedExpenseHistoryByStatus(sc, controller, "PAGO");
                 case 5 -> markFixedExpenseHistoryAsPaid(sc, controller);
                 case 6 -> totalFixedExpenseHistoryByPeriod(sc, controller);
                 case 0 -> printInfo("Voltando...");
@@ -482,7 +482,11 @@ public class Main {
         controller.listByPeriod(start, end);
     }
 
-    public static void listFixedExpenseHistoryByStatus(Scanner sc, FixedExpenseHistoryController controller, boolean status) {
+    public static void listFixedExpenseHistoryByStatus(
+            Scanner sc,
+            FixedExpenseHistoryController controller,
+            String status
+    ) {
         LocalDate start = readDate(sc, "Data início (AAAA-MM-DD): ");
         LocalDate end = readDate(sc, "Data fim (AAAA-MM-DD): ");
 
