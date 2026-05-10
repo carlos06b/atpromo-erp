@@ -76,7 +76,7 @@ public class PromoterFrame extends JFrame {
         JPanel actionPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 10, 12));
         actionPanel.setBackground(WHITE);
         actionPanel.setBorder(BorderFactory.createLineBorder(BORDER_GRAY));
-        actionPanel.setBounds(30, 25, 1045, 70);
+        actionPanel.setBounds(25, 20, 1185, 65);
         main.add(actionPanel);
 
         JButton btnList = createDarkButton("Listar");

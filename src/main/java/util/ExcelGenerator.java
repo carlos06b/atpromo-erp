@@ -115,6 +115,52 @@ public class ExcelGenerator {
         }
     }
 
+    public static void generatePendingRequests(List<String> requests, String path) {
+        try (Workbook workbook = new XSSFWorkbook()) {
+
+            Sheet sheet = workbook.createSheet("Solicitações Pendentes");
+
+            String[] columns = {
+                    "ID", "Promotor", "Tipo", "Valor", "Mensagem", "Status", "Data"
+            };
+
+            CellStyle headerStyle = workbook.createCellStyle();
+            Font headerFont = workbook.createFont();
+            headerFont.setBold(true);
+            headerStyle.setFont(headerFont);
+
+            Row header = sheet.createRow(0);
+
+            for (int i = 0; i < columns.length; i++) {
+                Cell cell = header.createCell(i);
+                cell.setCellValue(columns[i]);
+                cell.setCellStyle(headerStyle);
+            }
+
+            int rowNum = 1;
+
+            for (String request : requests) {
+                String[] parts = request.split("\\|");
+
+                Row row = sheet.createRow(rowNum++);
+
+                for (int i = 0; i < parts.length && i < columns.length; i++) {
+                    row.createCell(i).setCellValue(parts[i].trim());
+                }
+            }
+
+            for (int i = 0; i < columns.length; i++) {
+                sheet.autoSizeColumn(i);
+            }
+
+            try (FileOutputStream fileOut = new FileOutputStream(path)) {
+                workbook.write(fileOut);
+            }
+        } catch (Exception e) {
+            throw new RuntimeException("Erro ao gerar relatório de solicitações pendentes", e);
+        }
+    }
+
     public static void generateClients(List<Client> clients, String path) {
         try (Workbook workbook = new XSSFWorkbook()) {
 

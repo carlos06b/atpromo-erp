@@ -38,7 +38,7 @@ public class RequestFrame extends JFrame {
         this.promoterController = new PromoterController();
 
         setTitle("Sistema At Promo - Solicitações");
-        setSize(1100, 600);
+        setSize(1250, 620);
         setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
         setLocationRelativeTo(null);
         setResizable(false);
@@ -54,7 +54,7 @@ public class RequestFrame extends JFrame {
 
     private JPanel createHeaderPanel() {
         JPanel header = new JPanel(null);
-        header.setPreferredSize(new Dimension(1100, 95));
+        header.setPreferredSize(new Dimension(1250, 95));
         header.setBackground(BLACK);
 
         JLabel title = new JLabel("Gerenciamento de Solicitações");
@@ -73,7 +73,7 @@ public class RequestFrame extends JFrame {
         userLabel.setForeground(ORANGE);
         userLabel.setFont(new Font("Segoe UI", Font.BOLD, 14));
         userLabel.setHorizontalAlignment(SwingConstants.RIGHT);
-        userLabel.setBounds(720, 30, 330, 30);
+        userLabel.setBounds(835, 30, 360, 30);
         header.add(userLabel);
 
         return header;
@@ -86,15 +86,15 @@ public class RequestFrame extends JFrame {
         JPanel actionPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 10, 12));
         actionPanel.setBackground(WHITE);
         actionPanel.setBorder(BorderFactory.createLineBorder(BORDER_GRAY));
-        actionPanel.setBounds(25, 20, 1035, 65);
+        actionPanel.setBounds(25, 20, 1185, 65);
 
-        JButton btnListAll = createSecondaryButton("Listar Todas");
+        JButton btnListAll = createSecondaryButton("Todas");
         JButton btnPending = createPrimaryButton("Pendentes");
-        JButton btnPeriod = createSecondaryButton("Por Período");
+        JButton btnPeriod = createSecondaryButton("Período");
         JButton btnCreate = createPrimaryButton("Criar");
         JButton btnApprove = createPrimaryButton("Aprovar");
         JButton btnReject = createDangerButton("Rejeitar");
-        JButton btnDetails = createDarkButton("Ver Detalhes");
+        JButton btnDetails = createDarkButton("Detalhes");
 
         actionPanel.add(btnListAll);
         actionPanel.add(btnPending);
@@ -105,6 +105,10 @@ public class RequestFrame extends JFrame {
         actionPanel.add(btnDetails);
 
         main.add(actionPanel);
+
+        JButton btnExportPending = createDarkButton("Exportar Pendentes");
+        btnExportPending.setBounds(1025, 92, 185, 36);
+        main.add(btnExportPending);
 
         String[] columns = {
                 "ID", "Promotor", "Tipo", "Valor", "Mensagem", "Status", "Data", "MensagemCompleta"
@@ -145,7 +149,7 @@ public class RequestFrame extends JFrame {
         });
 
         JScrollPane scrollPane = new JScrollPane(table);
-        scrollPane.setBounds(25, 105, 1035, 390);
+        scrollPane.setBounds(25, 140, 1185, 355);
         scrollPane.setBorder(BorderFactory.createLineBorder(BORDER_GRAY));
         main.add(scrollPane);
 
@@ -156,6 +160,7 @@ public class RequestFrame extends JFrame {
         btnApprove.addActionListener(e -> approveSelected());
         btnReject.addActionListener(e -> rejectSelected());
         btnDetails.addActionListener(e -> showRequestDetails());
+        btnExportPending.addActionListener(e -> exportPendingRequests());
 
         if (loggedUser.getJobTittle().equalsIgnoreCase("RH")) {
             btnApprove.setEnabled(false);
@@ -418,6 +423,32 @@ public class RequestFrame extends JFrame {
                 "Detalhes da Solicitação",
                 JOptionPane.INFORMATION_MESSAGE
         );
+    }
+
+    private void exportPendingRequests() {
+        List<String> pendingRequests = requestController.getPendingWithPromoterName();
+
+        if (pendingRequests.isEmpty()) {
+            showWarning("Não existem solicitações pendentes para exportar.");
+            return;
+        }
+
+        JFileChooser chooser = new JFileChooser();
+        chooser.setSelectedFile(new java.io.File("solicitacoes_pendentes.xlsx"));
+
+        int option = chooser.showSaveDialog(this);
+
+        if (option == JFileChooser.APPROVE_OPTION) {
+            String path = chooser.getSelectedFile().getAbsolutePath();
+
+            if (!path.toLowerCase().endsWith(".xlsx")) {
+                path += ".xlsx";
+            }
+
+            util.ExcelGenerator.generatePendingRequests(pendingRequests, path);
+
+            showSuccess("Relatório de solicitações pendentes exportado com sucesso!");
+        }
     }
 
     private void fillTable(List<String> lines) {
