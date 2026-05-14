@@ -85,6 +85,7 @@ public class PromoterFrame extends JFrame {
         JButton btnInactive = createDangerButton("Inativar");
         JButton btnActivate = createPrimaryButton("Ativar");
         JButton btnRegister = createPrimaryButton("Cadastrar");
+        JButton btnDetails = createDarkButton("Detalhes");
 
         actionPanel.add(btnList);
         actionPanel.add(btnFilter);
@@ -92,6 +93,7 @@ public class PromoterFrame extends JFrame {
         actionPanel.add(btnInactive);
         actionPanel.add(btnActivate);
         actionPanel.add(btnRegister);
+        actionPanel.add(btnDetails);
 
         JPanel tablePanel = new JPanel(new BorderLayout());
         tablePanel.setBackground(WHITE);
@@ -129,6 +131,10 @@ public class PromoterFrame extends JFrame {
         table.getColumn("Editar").setCellRenderer(new ButtonRenderer());
         table.getColumn("Editar").setCellEditor(new ButtonEditor(new JCheckBox(), this));
 
+        table.getColumnModel().getColumn(0).setMinWidth(0);
+        table.getColumnModel().getColumn(0).setMaxWidth(0);
+        table.getColumnModel().getColumn(0).setWidth(0);
+
         JScrollPane scroll = new JScrollPane(table);
         scroll.setBorder(null);
         scroll.getViewport().setBackground(WHITE);
@@ -154,6 +160,7 @@ public class PromoterFrame extends JFrame {
         btnInactive.addActionListener(e -> actionInactivate());
         btnActivate.addActionListener(e -> actionActivate());
         btnRegister.addActionListener(e -> openRegisterDialog());
+        btnDetails.addActionListener(e -> showPromoterDetails());
 
         return main;
     }
@@ -327,8 +334,16 @@ public class PromoterFrame extends JFrame {
         }
 
         JTextField name = createTextField(p.getName());
-        JTextField phone = createTextField(p.getPhone());
+        JFormattedTextField phone = createPhoneField();
+        phone.setText(formatPhone(p.getPhone()));
+        JTextField pix = createTextField(p.getPix());
         JTextField salary = createTextField(p.getSalary().toString());
+
+        JComboBox<String> pixType = new JComboBox<>(new String[]{
+                "TELEFONE", "EMAIL", "CPF", "CNPJ", "ALEATORIA"
+        });
+        pixType.setSelectedItem(p.getPixType());
+        styleComboBox(pixType);
 
         JComboBox<String> type = new JComboBox<>(new String[]{"CLT", "MEI"});
         type.setSelectedItem(p.getType());
@@ -337,6 +352,8 @@ public class PromoterFrame extends JFrame {
         Object[] fields = {
                 "Nome:", name,
                 "Telefone:", phone,
+                "PIX:", pix,
+                "Tipo do PIX:", pixType,
                 "Salário:", salary,
                 "Tipo:", type
         };
@@ -358,7 +375,9 @@ public class PromoterFrame extends JFrame {
                 promoterController.update(
                         id,
                         name.getText().trim(),
-                        phone.getText().trim(),
+                        cleanPhone(phone.getText()),
+                        pix.getText().trim(),
+                        pixType.getSelectedItem().toString(),
                         new BigDecimal(salary.getText().trim().replace(",", ".")),
                         type.getSelectedItem().toString()
                 );
@@ -375,8 +394,14 @@ public class PromoterFrame extends JFrame {
     private void openRegisterDialog() {
         JTextField name = createTextField();
         JTextField cpf = createTextField();
-        JTextField phone = createTextField();
+        JFormattedTextField phone = createPhoneField();
+        JTextField pix = createTextField();
         JTextField salary = createTextField();
+
+        JComboBox<String> pixType = new JComboBox<>(new String[]{
+                "TELEFONE", "EMAIL", "CPF", "CNPJ", "ALEATORIA"
+        });
+        styleComboBox(pixType);
 
         JSpinner birthSpinner = new JSpinner(new SpinnerDateModel());
         JSpinner.DateEditor birthEditor = new JSpinner.DateEditor(birthSpinner, "dd/MM/yyyy");
@@ -390,6 +415,8 @@ public class PromoterFrame extends JFrame {
                 "Nome:", name,
                 "CPF:", cpf,
                 "Telefone:", phone,
+                "PIX:", pix,
+                "Tipo do PIX:", pixType,
                 "Nascimento:", birthSpinner,
                 "Salário:", salary,
                 "Tipo:", type
@@ -420,7 +447,9 @@ public class PromoterFrame extends JFrame {
                 promoterController.register(
                         name.getText().trim(),
                         cpf.getText().trim(),
-                        phone.getText().trim(),
+                        cleanPhone(phone.getText()),
+                        pix.getText().trim(),
+                        pixType.getSelectedItem().toString(),
                         dateBirth,
                         new BigDecimal(salary.getText().trim().replace(",", ".")),
                         type.getSelectedItem().toString()
@@ -450,12 +479,88 @@ public class PromoterFrame extends JFrame {
                 p.getId(),
                 p.getName(),
                 formatCpf(p.getCpf()),
-                p.getPhone(),
+                formatPhone(p.getPhone()),
                 p.getType(),
                 formatMoney(p.getSalary()),
                 p.isActive() ? "ATIVO" : "INATIVO",
                 "✏️"
         });
+    }
+
+    private void showPromoterDetails() {
+        int id = getSelectedId();
+
+        if (id == -1) {
+            showWarning("Selecione um promotor.");
+            return;
+        }
+
+        Promoter p = promoterController.findById(id);
+
+        if (p == null) {
+            showWarning("Promotor não encontrado.");
+            return;
+        }
+
+        JPanel panel = new JPanel(new BorderLayout(0, 12));
+        panel.setBackground(Color.WHITE);
+        panel.setBorder(BorderFactory.createEmptyBorder(15, 18, 15, 18));
+
+        JLabel title = new JLabel(p.getName());
+        title.setFont(new Font("Segoe UI", Font.BOLD, 20));
+        title.setForeground(BLACK);
+
+        JLabel subtitle = new JLabel(p.getType() + " • " + (p.isActive() ? "ATIVO" : "INATIVO"));
+        subtitle.setFont(new Font("Segoe UI", Font.PLAIN, 13));
+        subtitle.setForeground(TEXT_GRAY);
+
+        JPanel header = new JPanel(new GridLayout(2, 1));
+        header.setBackground(Color.WHITE);
+        header.add(title);
+        header.add(subtitle);
+
+        JPanel info = new JPanel(new GridLayout(0, 2, 12, 10));
+        info.setBackground(Color.WHITE);
+
+        addDetail(info, "CPF", formatCpf(p.getCpf()));
+        addDetail(info, "Telefone", p.getPhone());
+        addDetail(info, "PIX", p.getPix() == null || p.getPix().isBlank() ? "Não informado" : p.getPix());
+        addDetail(info, "Tipo do PIX", p.getPixType() == null || p.getPixType().isBlank() ? "Não informado" : p.getPixType());
+        addDetail(info, "Salário", formatMoney(p.getSalary()));
+        addDetail(info, "Tipo", p.getType());
+        addDetail(info, "Status", p.isActive() ? "ATIVO" : "INATIVO");
+
+        panel.add(header, BorderLayout.NORTH);
+        panel.add(info, BorderLayout.CENTER);
+
+        JOptionPane.showMessageDialog(
+                this,
+                panel,
+                "Detalhes do Promotor",
+                JOptionPane.PLAIN_MESSAGE
+        );
+    }
+
+    private void addDetail(JPanel panel, String label, String value) {
+        JPanel item = new JPanel(new BorderLayout(0, 3));
+        item.setBackground(Color.WHITE);
+        item.setBorder(BorderFactory.createCompoundBorder(
+                BorderFactory.createLineBorder(BORDER_GRAY),
+                BorderFactory.createEmptyBorder(8, 10, 8, 10)
+        ));
+
+        JLabel title = new JLabel(label);
+        title.setFont(new Font("Segoe UI", Font.BOLD, 12));
+        title.setForeground(TEXT_GRAY);
+
+        JLabel content = new JLabel(value);
+        content.setFont(new Font("Segoe UI", Font.PLAIN, 14));
+        content.setForeground(BLACK);
+
+        item.add(title, BorderLayout.NORTH);
+        item.add(content, BorderLayout.CENTER);
+
+        panel.add(item);
     }
 
     private int getSelectedId() {
@@ -467,6 +572,45 @@ public class PromoterFrame extends JFrame {
 
         int modelRow = table.convertRowIndexToModel(row);
         return (int) tableModel.getValueAt(modelRow, 0);
+    }
+
+    private String formatPhone(String phone) {
+        if (phone == null || phone.isBlank()) {
+            return "";
+        }
+
+        String clean = phone.replaceAll("[^0-9]", "");
+
+        if (clean.length() == 13 && clean.startsWith("55")) {
+            return "+" + clean.substring(0, 2) +
+                    " (" + clean.substring(2, 4) + ")" +
+                    clean.substring(4, 9) +
+                    "-" +
+                    clean.substring(9);
+        }
+
+        if (clean.length() == 11) {
+            return "+55 (" + clean.substring(0, 2) + ")" +
+                    clean.substring(2, 7) +
+                    "-" +
+                    clean.substring(7);
+        }
+
+        return phone;
+    }
+
+    private String cleanPhone(String phone) {
+        if (phone == null) {
+            return "";
+        }
+
+        String clean = phone.replaceAll("[^0-9]", "");
+
+        if (clean.startsWith("55") && clean.length() == 13) {
+            return clean.substring(2);
+        }
+
+        return clean;
     }
 
     private String formatCpf(String cpf) {
@@ -488,6 +632,22 @@ public class PromoterFrame extends JFrame {
 
     private JTextField createTextField() {
         return createTextField("");
+    }
+
+    private JFormattedTextField createPhoneField() {
+        try {
+            javax.swing.text.MaskFormatter mask = new javax.swing.text.MaskFormatter("+55 (##)#####-####");
+            mask.setPlaceholderCharacter(' ');
+            JFormattedTextField field = new JFormattedTextField(mask);
+            field.setFont(new Font("Segoe UI", Font.PLAIN, 13));
+            field.setBorder(BorderFactory.createCompoundBorder(
+                    BorderFactory.createLineBorder(BORDER_GRAY),
+                    BorderFactory.createEmptyBorder(5, 8, 5, 8)
+            ));
+            return field;
+        } catch (Exception e) {
+            return new JFormattedTextField();
+        }
     }
 
     private JTextField createTextField(String text) {

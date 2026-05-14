@@ -11,8 +11,8 @@ public class PromoterController {
 
     private PromoterDAO promoterDAO = new PromoterDAO();
 
-    public void register(String name, String cpf, String phone, LocalDate dateBirth,
-                         BigDecimal salary, String type) {
+    public void register(String name, String cpf, String phone, String pix, String pixType,
+                         LocalDate dateBirth, BigDecimal salary, String type) {
 
         cpf = cpf.replaceAll("[^0-9]", "");
 
@@ -36,6 +36,8 @@ public class PromoterController {
         promoter.setName(name);
         promoter.setCpf(cpf);
         promoter.setPhone(phone);
+        promoter.setPix(pix);
+        promoter.setPixType(pixType);
         promoter.setDateBirth(dateBirth);
         promoter.setSalary(salary);
         promoter.setType(type.toUpperCase());
@@ -99,7 +101,7 @@ public class PromoterController {
 
 
 
-    public void update(int id, String name, String phone, BigDecimal salary, String type) {
+    public void update(int id, String name, String phone, String pix, String pixType, BigDecimal salary, String type) {
 
         Promoter p = promoterDAO.findById(id);
 
@@ -115,6 +117,8 @@ public class PromoterController {
 
         p.setName(name);
         p.setPhone(phone);
+        p.setPix(pix);
+        p.setPixType(pixType);
         p.setSalary(salary);
         p.setType(type.toUpperCase());
 

@@ -4,11 +4,14 @@ import dao.FinancePromoterDAO;
 import dao.PromoterDAO;
 import dao.RequestDAO;
 import model.FinancePromoter;
+import model.Promoter;
+import model.PromoterPaymentData;
 import model.Request;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.List;
 
 public class RequestController {
@@ -229,5 +232,35 @@ public class RequestController {
                         r.getStatus() + " | " +
                         r.getDate()
         );
+    }
+
+    public List<PromoterPaymentData> getPendingPixBatch(LocalDate paymentDate) {
+        List<Request> requests = requestDAO.findByStatus("PENDENTE");
+        List<PromoterPaymentData> payments = new ArrayList<>();
+
+        for (Request request : requests) {
+            Promoter promoter = promoterDAO.findById(request.getId_Promoter());
+
+            if (promoter == null) {
+                continue;
+            }
+
+            if (promoter.getPix() == null || promoter.getPix().isBlank()) {
+                continue;
+            }
+
+            payments.add(
+                    new PromoterPaymentData(
+                            promoter.getCpf(),
+                            promoter.getName(),
+                            promoter.getPix(),
+                            promoter.getPixType(),
+                            request.getAmount(),
+                            paymentDate
+                    )
+            );
+        }
+
+        return payments;
     }
 }

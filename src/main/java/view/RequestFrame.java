@@ -110,6 +110,10 @@ public class RequestFrame extends JFrame {
         btnExportPending.setBounds(1025, 92, 185, 36);
         main.add(btnExportPending);
 
+        JButton btnExportPixBatch = createPrimaryButton("Exportar Pix Lote");
+        btnExportPixBatch.setBounds(815, 92, 190, 36);
+        main.add(btnExportPixBatch);
+
         String[] columns = {
                 "ID", "Promotor", "Tipo", "Valor", "Mensagem", "Status", "Data", "MensagemCompleta"
         };
@@ -161,6 +165,7 @@ public class RequestFrame extends JFrame {
         btnReject.addActionListener(e -> rejectSelected());
         btnDetails.addActionListener(e -> showRequestDetails());
         btnExportPending.addActionListener(e -> exportPendingRequests());
+        btnExportPixBatch.addActionListener(e -> exportPixBatch());
 
         if (loggedUser.getJobTittle().equalsIgnoreCase("RH")) {
             btnApprove.setEnabled(false);
@@ -399,32 +404,82 @@ public class RequestFrame extends JFrame {
 
         String messageToShow = fullMessage != null ? fullMessage.toString() : shortMessage.toString();
 
-        JTextArea detailsArea = new JTextArea();
-        detailsArea.setEditable(false);
-        detailsArea.setLineWrap(true);
-        detailsArea.setWrapStyleWord(true);
-        detailsArea.setFont(new Font("Segoe UI", Font.PLAIN, 14));
-        detailsArea.setText(
-                "Promotor: " + promoter + "\n" +
-                        "Tipo: " + type + "\n" +
-                        "Valor: " + amount + "\n" +
-                        "Status: " + status + "\n" +
-                        "Data: " + date + "\n\n" +
-                        "Mensagem / PIX / Dados para pagamento:\n" +
-                        messageToShow
-        );
+        JPanel panel = new JPanel(new BorderLayout(0, 14));
+        panel.setBackground(WHITE);
+        panel.setBorder(BorderFactory.createEmptyBorder(16, 18, 16, 18));
 
-        JScrollPane scrollPane = new JScrollPane(detailsArea);
-        scrollPane.setPreferredSize(new Dimension(550, 320));
+        JLabel title = new JLabel("Solicitação - " + type);
+        title.setFont(new Font("Segoe UI", Font.BOLD, 20));
+        title.setForeground(BLACK);
+
+        JLabel subtitle = new JLabel("Promotor: " + promoter + " • Status: " + status);
+        subtitle.setFont(new Font("Segoe UI", Font.PLAIN, 13));
+        subtitle.setForeground(TEXT_GRAY);
+
+        JPanel header = new JPanel(new GridLayout(2, 1));
+        header.setBackground(WHITE);
+        header.add(title);
+        header.add(subtitle);
+
+        JPanel info = new JPanel(new GridLayout(0, 2, 12, 10));
+        info.setBackground(WHITE);
+
+        addDetail(info, "Promotor", promoter.toString());
+        addDetail(info, "Tipo", type.toString());
+        addDetail(info, "Valor", amount.toString());
+        addDetail(info, "Status", status.toString());
+        addDetail(info, "Data", date.toString());
+
+        JTextArea messageArea = new JTextArea(messageToShow);
+        messageArea.setEditable(false);
+        messageArea.setLineWrap(true);
+        messageArea.setWrapStyleWord(true);
+        messageArea.setFont(new Font("Segoe UI", Font.PLAIN, 14));
+        messageArea.setBackground(WHITE);
+        messageArea.setBorder(BorderFactory.createCompoundBorder(
+                BorderFactory.createLineBorder(BORDER_GRAY),
+                BorderFactory.createEmptyBorder(10, 10, 10, 10)
+        ));
+
+        JScrollPane messageScroll = new JScrollPane(messageArea);
+        messageScroll.setPreferredSize(new Dimension(560, 160));
+        messageScroll.setBorder(BorderFactory.createTitledBorder("Mensagem / PIX / Dados para pagamento"));
+
+        panel.add(header, BorderLayout.NORTH);
+        panel.add(info, BorderLayout.CENTER);
+        panel.add(messageScroll, BorderLayout.SOUTH);
 
         JOptionPane.showMessageDialog(
                 this,
-                scrollPane,
+                panel,
                 "Detalhes da Solicitação",
-                JOptionPane.INFORMATION_MESSAGE
+                JOptionPane.PLAIN_MESSAGE
         );
     }
 
+    private void addDetail(JPanel panel, String label, String value) {
+        JPanel item = new JPanel(new BorderLayout(0, 3));
+        item.setBackground(WHITE);
+        item.setBorder(BorderFactory.createCompoundBorder(
+                BorderFactory.createLineBorder(BORDER_GRAY),
+                BorderFactory.createEmptyBorder(8, 10, 8, 10)
+        ));
+
+        JLabel title = new JLabel(label);
+        title.setFont(new Font("Segoe UI", Font.BOLD, 12));
+        title.setForeground(TEXT_GRAY);
+
+        JLabel content = new JLabel(value);
+        content.setFont(new Font("Segoe UI", Font.PLAIN, 14));
+        content.setForeground(BLACK);
+
+        item.add(title, BorderLayout.NORTH);
+        item.add(content, BorderLayout.CENTER);
+
+        panel.add(item);
+    }
+
+    // Exportar Excel
     private void exportPendingRequests() {
         List<String> pendingRequests = requestController.getPendingWithPromoterName();
 
@@ -448,6 +503,52 @@ public class RequestFrame extends JFrame {
             util.ExcelGenerator.generatePendingRequests(pendingRequests, path);
 
             showSuccess("Relatório de solicitações pendentes exportado com sucesso!");
+        }
+    }
+
+    private void exportPixBatch() {
+        JSpinner paymentDateSpinner = new JSpinner(new SpinnerDateModel());
+        paymentDateSpinner.setEditor(new JSpinner.DateEditor(paymentDateSpinner, "dd/MM/yyyy"));
+
+        int dateOption = JOptionPane.showConfirmDialog(
+                this,
+                paymentDateSpinner,
+                "Data do pagamento",
+                JOptionPane.OK_CANCEL_OPTION
+        );
+
+        if (dateOption != JOptionPane.OK_OPTION) {
+            return;
+        }
+
+        java.util.Date selectedDate = (java.util.Date) paymentDateSpinner.getValue();
+
+        LocalDate paymentDate = selectedDate.toInstant()
+                .atZone(ZoneId.systemDefault())
+                .toLocalDate();
+
+        List<model.PromoterPaymentData> payments = requestController.getPendingPixBatch(paymentDate);
+
+        if (payments.isEmpty()) {
+            showWarning("Não há solicitações pendentes com PIX cadastrado.");
+            return;
+        }
+
+        JFileChooser chooser = new JFileChooser();
+        chooser.setSelectedFile(new java.io.File("pix_lote_solicitacoes.xlsx"));
+
+        int option = chooser.showSaveDialog(this);
+
+        if (option == JFileChooser.APPROVE_OPTION) {
+            String path = chooser.getSelectedFile().getAbsolutePath();
+
+            if (!path.toLowerCase().endsWith(".xlsx")) {
+                path += ".xlsx";
+            }
+
+            util.ExcelGenerator.generatePixBatch(payments, path);
+
+            showSuccess("Pix Lote exportado com sucesso!");
         }
     }
 

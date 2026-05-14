@@ -13,12 +13,14 @@ public class Promoter {
     private boolean active;
     private BigDecimal salary;
     private String type; // CLT ou MEI
+    private String pix;
+    private String pixType;
 
     public Promoter() {
     }
 
     public Promoter(int id, String name, String cpf, String phone, LocalDate dateBirth,
-                    boolean active, BigDecimal salary, String type) {
+                    boolean active, BigDecimal salary, String type,  String pix, String pixType) {
         this.id = id;
         this.name = name;
         this.cpf = cpf;
@@ -27,6 +29,8 @@ public class Promoter {
         this.active = active;
         this.salary = salary;
         this.type = type;
+        this.pix = pix;
+        this.pixType = pixType;
     }
 
     public int getId() {
@@ -98,5 +102,21 @@ public class Promoter {
 
     public void setType(String type) {
         this.type = type;
+    }
+
+    public String getPix() {
+        return pix;
+    }
+
+    public void setPix(String pix) {
+        this.pix = pix;
+    }
+
+    public String getPixType() {
+        return pixType;
+    }
+
+    public void setPixType(String pixType) {
+        this.pixType = pixType;
     }
 }

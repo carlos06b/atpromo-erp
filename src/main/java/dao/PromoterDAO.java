@@ -14,8 +14,8 @@ public class PromoterDAO {
 
     public int save(Promoter promoter) {
 
-        String sql = "INSERT INTO promoter (name, cpf, phone, date_birth, active, salary, type) " +
-                "VALUES (?, ?, ?, ?, ?, ?, ?)";
+        String sql = "INSERT INTO promoter (name, cpf, phone, date_birth, active, salary, type, pix, pix_type) " +
+                "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)";
 
         try (Connection conn = ConnectionFactory.getConnection();
              PreparedStatement stmt = conn.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
@@ -27,6 +27,8 @@ public class PromoterDAO {
             stmt.setBoolean(5, promoter.isActive());
             stmt.setBigDecimal(6, promoter.getSalary());
             stmt.setString(7, promoter.getType());
+            stmt.setString(8, promoter.getPix());
+            stmt.setString(9, promoter.getPixType());
 
             stmt.executeUpdate();
 
@@ -160,7 +162,7 @@ public class PromoterDAO {
 
     public void update(Promoter promoter) {
 
-        String sql = "UPDATE promoter SET name = ?, cpf = ?, phone = ?, date_birth = ?, active = ?, salary = ?, type = ? " +
+        String sql = "UPDATE promoter SET name = ?, cpf = ?, phone = ?, date_birth = ?, active = ?, salary = ?, type = ?, pix = ?, pix_type = ? " +
                 "WHERE idpromoter = ?";
 
         try (Connection conn = ConnectionFactory.getConnection();
@@ -173,7 +175,9 @@ public class PromoterDAO {
             stmt.setBoolean(5, promoter.isActive());
             stmt.setBigDecimal(6, promoter.getSalary());
             stmt.setString(7, promoter.getType());
-            stmt.setInt(8, promoter.getId());
+            stmt.setString(8, promoter.getPix());
+            stmt.setString(9, promoter.getPixType());
+            stmt.setInt(10, promoter.getId());
 
             int rows = stmt.executeUpdate();
 
@@ -224,6 +228,8 @@ public class PromoterDAO {
         p.setActive(rs.getBoolean("active"));
         p.setSalary(rs.getBigDecimal("salary"));
         p.setType(rs.getString("type"));
+        p.setPix(rs.getString("pix"));
+        p.setPixType(rs.getString("pix_type"));
 
         return p;
     }

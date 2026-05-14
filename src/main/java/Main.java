@@ -336,6 +336,11 @@ public class Main {
         System.out.print("Telefone: ");
         String phone = sc.nextLine().trim();
 
+        System.out.print("PIX: ");
+        String pix = sc.nextLine().trim();
+
+        String pixType = readPixType(sc);
+
         if (name.isBlank() || cpf.isBlank() || phone.isBlank()) {
             printError("Nome, CPF e telefone são obrigatórios.");
             return;
@@ -345,7 +350,7 @@ public class Main {
         BigDecimal salary = readPositiveBigDecimal(sc, "Salário: ");
         String type = readPromoterType(sc);
 
-        controller.register(name, cpf, phone, dateBirth, salary, type);
+        controller.register(name, cpf, phone, pix, pixType, dateBirth, salary, type);
     }
 
     public static void updatePromoter(Scanner sc, PromoterController controller) {
@@ -357,6 +362,11 @@ public class Main {
         System.out.print("Novo telefone: ");
         String phone = sc.nextLine().trim();
 
+        System.out.print("Novo PIX: ");
+        String pix = sc.nextLine().trim();
+
+        String pixType = readPixType(sc);
+
         if (name.isBlank() || phone.isBlank()) {
             printError("Nome e telefone são obrigatórios.");
             return;
@@ -365,7 +375,7 @@ public class Main {
         BigDecimal salary = readPositiveBigDecimal(sc, "Novo salário: ");
         String type = readPromoterType(sc);
 
-        controller.update(id, name, phone, salary, type);
+        controller.update(id, name, phone, pix, pixType, salary, type);
     }
 
     public static void registerFixedExpense(Scanner sc, FixedExpenseController controller) {
@@ -610,6 +620,23 @@ public class Main {
         }
 
         return true;
+    }
+
+    public static String readPixType(Scanner sc) {
+        while (true) {
+            System.out.print("Tipo do PIX (TELEFONE/EMAIL/CPF/CNPJ/ALEATORIA): ");
+            String pixType = sc.nextLine().trim().toUpperCase();
+
+            if (pixType.equals("TELEFONE")
+                    || pixType.equals("EMAIL")
+                    || pixType.equals("CPF")
+                    || pixType.equals("CNPJ")
+                    || pixType.equals("ALEATORIA")) {
+                return pixType;
+            }
+
+            printError("Tipo do PIX inválido. Use TELEFONE, EMAIL, CPF, CNPJ ou ALEATORIA.");
+        }
     }
 
     public static void printTitle(String title) {
