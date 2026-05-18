@@ -404,6 +404,18 @@ public class RequestFrame extends JFrame {
 
         String messageToShow = fullMessage != null ? fullMessage.toString() : shortMessage.toString();
 
+        String promoterPix = "Não informado";
+
+        List<Promoter> promoters = promoterController.searchByName(promoter.toString());
+
+        if (!promoters.isEmpty()) {
+            Promoter promoterData = promoters.get(0);
+
+            if (promoterData.getPix() != null && !promoterData.getPix().isBlank()) {
+                promoterPix = promoterData.getPix();
+            }
+        }
+
         JPanel panel = new JPanel(new BorderLayout(0, 14));
         panel.setBackground(WHITE);
         panel.setBorder(BorderFactory.createEmptyBorder(16, 18, 16, 18));
@@ -425,6 +437,7 @@ public class RequestFrame extends JFrame {
         info.setBackground(WHITE);
 
         addDetail(info, "Promotor", promoter.toString());
+        addDetail(info, "PIX", promoterPix);
         addDetail(info, "Tipo", type.toString());
         addDetail(info, "Valor", amount.toString());
         addDetail(info, "Status", status.toString());
@@ -443,7 +456,7 @@ public class RequestFrame extends JFrame {
 
         JScrollPane messageScroll = new JScrollPane(messageArea);
         messageScroll.setPreferredSize(new Dimension(560, 160));
-        messageScroll.setBorder(BorderFactory.createTitledBorder("Mensagem / PIX / Dados para pagamento"));
+        messageScroll.setBorder(BorderFactory.createTitledBorder("Mensagem / Dados para pagamento"));
 
         panel.add(header, BorderLayout.NORTH);
         panel.add(info, BorderLayout.CENTER);

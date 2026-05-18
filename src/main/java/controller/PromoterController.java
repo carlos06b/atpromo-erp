@@ -26,8 +26,10 @@ public class PromoterController {
             return;
         }
 
-        if (!type.equalsIgnoreCase("CLT") && !type.equalsIgnoreCase("MEI")) {
-            System.out.println("Tipo inválido. Use CLT ou MEI.");
+        if (!type.equalsIgnoreCase("CLT")
+                && !type.equalsIgnoreCase("MEI")
+                && !type.equalsIgnoreCase("FERISTA")) {
+            System.out.println("Tipo inválido. Use CLT, MEI ou FERISTA.");
             return;
         }
 
@@ -110,8 +112,10 @@ public class PromoterController {
             return;
         }
 
-        if (!type.equalsIgnoreCase("CLT") && !type.equalsIgnoreCase("MEI")) {
-            System.out.println("Tipo inválido.");
+        if (!type.equalsIgnoreCase("CLT")
+                && !type.equalsIgnoreCase("MEI")
+                && !type.equalsIgnoreCase("FERISTA")) {
+            System.out.println("Tipo inválido. Use CLT, MEI ou FERISTA.");
             return;
         }
 

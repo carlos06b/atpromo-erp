@@ -589,14 +589,14 @@ public class Main {
 
     public static String readPromoterType(Scanner sc) {
         while (true) {
-            System.out.print("Tipo (CLT/MEI): ");
+            System.out.print("Tipo (CLT/MEI/FERISTA): ");
             String type = sc.nextLine().trim().toUpperCase();
 
-            if (type.equals("CLT") || type.equals("MEI")) {
+            if (type.equals("CLT") || type.equals("MEI") || type.equals("FERISTA")) {
                 return type;
             }
 
-            printError("Tipo inválido. Use CLT ou MEI.");
+            printError("Tipo inválido. Use CLT, MEI ou FERISTA.");
         }
     }
 

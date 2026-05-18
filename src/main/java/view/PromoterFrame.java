@@ -185,7 +185,7 @@ public class PromoterFrame extends JFrame {
     }
 
     private void openFilterDialog() {
-        JComboBox<String> typeBox = new JComboBox<>(new String[]{"TODOS", "CLT", "MEI"});
+        JComboBox<String> typeBox = new JComboBox<>(new String[]{"TODOS", "CLT", "MEI", "FERISTA"});
         JComboBox<String> statusBox = new JComboBox<>(new String[]{"TODOS", "ATIVO", "INATIVO"});
 
         styleComboBox(typeBox);
@@ -345,7 +345,7 @@ public class PromoterFrame extends JFrame {
         pixType.setSelectedItem(p.getPixType());
         styleComboBox(pixType);
 
-        JComboBox<String> type = new JComboBox<>(new String[]{"CLT", "MEI"});
+        JComboBox<String> type = new JComboBox<>(new String[]{"CLT", "MEI", "FERISTA"});
         type.setSelectedItem(p.getType());
         styleComboBox(type);
 
@@ -408,7 +408,7 @@ public class PromoterFrame extends JFrame {
         birthSpinner.setEditor(birthEditor);
         birthSpinner.setFont(new Font("Segoe UI", Font.PLAIN, 13));
 
-        JComboBox<String> type = new JComboBox<>(new String[]{"CLT", "MEI"});
+        JComboBox<String> type = new JComboBox<>(new String[]{"CLT", "MEI", "FERISTA"});
         styleComboBox(type);
 
         Object[] fields = {

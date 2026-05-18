@@ -110,7 +110,7 @@ public class PayrollFrame extends JFrame {
         typeLabel.setBounds(340, 48, 150, 22);
         filterPanel.add(typeLabel);
 
-        typeBox = new JComboBox<>(new String[]{"TODOS", "CLT", "MEI"});
+        typeBox = new JComboBox<>(new String[]{"TODOS", "CLT", "MEI", "FERISTA"});
         typeBox.setFont(new Font("Segoe UI", Font.PLAIN, 13));
         typeBox.setBounds(340, 72, 140, 32);
         filterPanel.add(typeBox);
