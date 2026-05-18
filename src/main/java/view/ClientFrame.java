@@ -17,8 +17,8 @@ public class ClientFrame extends JFrame {
     private final Color BLACK = new Color(18, 18, 18);
     private final Color WHITE = Color.WHITE;
     private final Color LIGHT_GRAY = new Color(245, 245, 245);
-    private final Color DARK_GRAY = new Color(55, 55, 55);
     private final Color RED = new Color(180, 40, 40);
+    private final Color GREEN = new Color(35, 140, 80);
 
     private JTextField txtSearch;
     private JComboBox<String> cbStatusFilter;
@@ -116,16 +116,15 @@ public class ClientFrame extends JFrame {
         btnRefresh.addActionListener(e -> resetFilters());
         filterPanel.add(btnRefresh);
 
-        JButton btnRegister = createPrimaryButton("Novo Cliente");
+        JButton btnRegister = createPrimaryButton("Novo");
         btnRegister.setBounds(830, 38, 70, 32);
-        btnRegister.setText("Novo");
         btnRegister.addActionListener(e -> openRegisterDialog());
         filterPanel.add(btnRegister);
     }
 
     private void createTable(JPanel panel) {
         tableModel = new DefaultTableModel(
-                new Object[]{"ID", "Indústria", "CNPJ", "Telefone", "Vínculo", "Status"}, 0
+                new Object[]{"ID", "Indústria", "CNPJ", "Telefone", "Email", "Vínculo", "Status"}, 0
         ) {
             @Override
             public boolean isCellEditable(int row, int column) {
@@ -152,14 +151,19 @@ public class ClientFrame extends JFrame {
         table.getColumnModel().getColumn(0).setMaxWidth(0);
         table.getColumnModel().getColumn(0).setWidth(0);
 
-        table.getColumnModel().getColumn(1).setPreferredWidth(280);
-        table.getColumnModel().getColumn(2).setPreferredWidth(150);
-        table.getColumnModel().getColumn(3).setPreferredWidth(140);
-        table.getColumnModel().getColumn(4).setPreferredWidth(90);
-        table.getColumnModel().getColumn(5).setPreferredWidth(90);
+        table.getColumnModel().getColumn(1).setPreferredWidth(240);
+        table.getColumnModel().getColumn(2).setPreferredWidth(135);
+        table.getColumnModel().getColumn(3).setPreferredWidth(120);
+        table.getColumnModel().getColumn(4).setPreferredWidth(190);
+        table.getColumnModel().getColumn(5).setPreferredWidth(80);
+        table.getColumnModel().getColumn(6).setPreferredWidth(80);
     }
 
     private void createActionButtons(JPanel panel) {
+        JButton btnDetails = createSecondaryButton("Ver Detalhes");
+        btnDetails.setBounds(335, 525, 125, 36);
+        btnDetails.addActionListener(e -> showClientDetails());
+        panel.add(btnDetails);
 
         JButton btnExcel = createPrimaryButton("Exportar Excel");
         btnExcel.setBounds(470, 525, 150, 36);
@@ -186,6 +190,7 @@ public class ClientFrame extends JFrame {
         JTextField txtName = new JTextField();
         JTextField txtCnpj = new JTextField();
         JTextField txtPhone = new JTextField();
+        JTextField txtEmail = new JTextField();
         JComboBox<String> cbCompanyLink = new JComboBox<>(new String[]{"AT", "TEJO"});
 
         JPanel panel = new JPanel(new GridLayout(0, 1, 5, 5));
@@ -195,6 +200,8 @@ public class ClientFrame extends JFrame {
         panel.add(txtCnpj);
         panel.add(new JLabel("Telefone:"));
         panel.add(txtPhone);
+        panel.add(new JLabel("Email:"));
+        panel.add(txtEmail);
         panel.add(new JLabel("Vínculo:"));
         panel.add(cbCompanyLink);
 
@@ -212,6 +219,7 @@ public class ClientFrame extends JFrame {
                         txtName.getText(),
                         txtCnpj.getText(),
                         txtPhone.getText(),
+                        txtEmail.getText(),
                         cbCompanyLink.getSelectedItem().toString()
                 );
 
@@ -288,6 +296,130 @@ public class ClientFrame extends JFrame {
         }
     }
 
+    private void showClientDetails() {
+        int id = getSelectedClientId();
+
+        if (id == -1) {
+            return;
+        }
+
+        try {
+            Client client = clientController.findById(id);
+
+            JDialog dialog = new JDialog(this, "Detalhes da Indústria", true);
+            dialog.setSize(560, 460);
+            dialog.setLocationRelativeTo(this);
+            dialog.setResizable(false);
+            dialog.setLayout(new BorderLayout());
+            dialog.getContentPane().setBackground(WHITE);
+
+            dialog.add(createClientDetailsHeader(client), BorderLayout.NORTH);
+            dialog.add(createClientDetailsBody(client), BorderLayout.CENTER);
+            dialog.add(createClientDetailsFooter(dialog), BorderLayout.SOUTH);
+
+            dialog.setVisible(true);
+
+        } catch (RuntimeException e) {
+            JOptionPane.showMessageDialog(this, e.getMessage(), "Erro", JOptionPane.ERROR_MESSAGE);
+        }
+    }
+
+    private JPanel createClientDetailsHeader(Client client) {
+        JPanel header = new JPanel(null);
+        header.setPreferredSize(new Dimension(560, 115));
+        header.setBackground(BLACK);
+
+        JLabel title = new JLabel(formatDetail(client.getName()));
+        title.setForeground(WHITE);
+        title.setFont(new Font("Segoe UI", Font.BOLD, 24));
+        title.setBounds(28, 20, 360, 32);
+        header.add(title);
+
+        JLabel subtitle = new JLabel("Cadastro de cliente / indústria");
+        subtitle.setForeground(new Color(210, 210, 210));
+        subtitle.setFont(new Font("Segoe UI", Font.PLAIN, 14));
+        subtitle.setBounds(30, 55, 300, 24);
+        header.add(subtitle);
+
+        JLabel status = new JLabel(client.isActive() ? "ATIVO" : "INATIVO", SwingConstants.CENTER);
+        status.setOpaque(true);
+        status.setBackground(client.isActive() ? GREEN : RED);
+        status.setForeground(WHITE);
+        status.setFont(new Font("Segoe UI", Font.BOLD, 12));
+        status.setBounds(420, 30, 95, 30);
+        header.add(status);
+
+        JPanel orangeLine = new JPanel();
+        orangeLine.setBackground(ORANGE);
+        orangeLine.setBounds(28, 92, 485, 4);
+        header.add(orangeLine);
+
+        return header;
+    }
+
+    private JPanel createClientDetailsBody(Client client) {
+        JPanel body = new JPanel(null);
+        body.setBackground(WHITE);
+
+        JPanel card = new JPanel(new GridLayout(0, 1, 0, 10));
+        card.setBackground(WHITE);
+        card.setBorder(BorderFactory.createCompoundBorder(
+                BorderFactory.createLineBorder(new Color(225, 225, 225)),
+                BorderFactory.createEmptyBorder(18, 22, 18, 22)
+        ));
+        card.setBounds(28, 24, 485, 230);
+
+        card.add(createDetailLine("CNPJ", client.getCnpj()));
+        card.add(createDetailLine("Telefone", client.getPhone()));
+        card.add(createDetailLine("Email", client.getEmail()));
+        card.add(createDetailLine("Vínculo", client.getCompanyLink()));
+        card.add(createDetailLine("Status", client.isActive() ? "Ativo" : "Inativo"));
+
+        body.add(card);
+
+        return body;
+    }
+
+    private JPanel createDetailLine(String label, String value) {
+        JPanel line = new JPanel(new BorderLayout());
+        line.setBackground(WHITE);
+
+        JLabel labelText = new JLabel(label);
+        labelText.setForeground(new Color(110, 110, 110));
+        labelText.setFont(new Font("Segoe UI", Font.BOLD, 12));
+        labelText.setPreferredSize(new Dimension(110, 28));
+
+        JLabel valueText = new JLabel(formatDetail(value));
+        valueText.setForeground(BLACK);
+        valueText.setFont(new Font("Segoe UI", Font.PLAIN, 14));
+
+        line.add(labelText, BorderLayout.WEST);
+        line.add(valueText, BorderLayout.CENTER);
+
+        return line;
+    }
+
+    private JPanel createClientDetailsFooter(JDialog dialog) {
+        JPanel footer = new JPanel(null);
+        footer.setPreferredSize(new Dimension(560, 70));
+        footer.setBackground(LIGHT_GRAY);
+
+        JButton btnClose = createDarkButton("Fechar");
+        btnClose.setBounds(395, 18, 120, 34);
+        btnClose.addActionListener(e -> dialog.dispose());
+        footer.add(btnClose);
+
+        return footer;
+    }
+
+    private String formatDetail(String value) {
+        if (value == null || value.isBlank()) {
+            return "Não informado";
+        }
+
+        return value;
+    }
+
     private int getSelectedClientId() {
         int row = table.getSelectedRow();
 
@@ -308,6 +440,7 @@ public class ClientFrame extends JFrame {
                     client.getName(),
                     client.getCnpj(),
                     client.getPhone(),
+                    client.getEmail(),
                     client.getCompanyLink(),
                     client.isActive() ? "Ativo" : "Inativo"
             });
@@ -360,8 +493,6 @@ public class ClientFrame extends JFrame {
                 .filter(c -> company.equals("Todos") || company.equals(c.getCompanyLink()))
                 .toList();
     }
-
-
 
     private JButton createPrimaryButton(String text) {
         JButton button = new JButton(text);

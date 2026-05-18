@@ -4,10 +4,13 @@ import database.ConnectionFactory;
 import model.Invoice;
 import model.InvoiceView;
 
+import java.math.BigDecimal;
 import java.sql.*;
 import java.time.LocalDate;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 public class InvoiceDAO {
 
@@ -88,6 +91,46 @@ public class InvoiceDAO {
 
         } catch (SQLException e) {
             throw new RuntimeException("Erro ao buscar faturamentos por período", e);
+        }
+
+        return invoices;
+    }
+
+    public List<InvoiceView> findViewByPaymentPeriod(LocalDate start, LocalDate end) {
+        String sql = """
+                SELECT 
+                    i.id,
+                    c.name AS client_name,
+                    c.company_link,
+                    i.amount,
+                    i.description,
+                    i.due_date,
+                    i.issue_date,
+                    i.payment_date,
+                    i.status
+                FROM invoice i
+                INNER JOIN client c ON i.id_client = c.id
+                WHERE i.payment_date BETWEEN ? AND ?
+                  AND i.status = 'PAGO'
+                ORDER BY i.payment_date, c.name
+                """;
+
+        List<InvoiceView> invoices = new ArrayList<>();
+
+        try (Connection conn = ConnectionFactory.getConnection();
+             PreparedStatement stmt = conn.prepareStatement(sql)) {
+
+            stmt.setDate(1, Date.valueOf(start));
+            stmt.setDate(2, Date.valueOf(end));
+
+            ResultSet rs = stmt.executeQuery();
+
+            while (rs.next()) {
+                invoices.add(mapResultSetToInvoiceView(rs));
+            }
+
+        } catch (SQLException e) {
+            throw new RuntimeException("Erro ao buscar recebimentos por período", e);
         }
 
         return invoices;
@@ -186,19 +229,138 @@ public class InvoiceDAO {
         return invoices;
     }
 
-    public void markAsIssued(int id) {
+    public BigDecimal getTotalExpectedByDueDatePeriod(LocalDate start, LocalDate end) {
         String sql = """
-                UPDATE invoice
-                SET status = 'FATURADO',
-                    issue_date = CURDATE()
-                WHERE id = ?
-                AND status = 'PENDENTE'
+                SELECT SUM(amount) AS total
+                FROM invoice
+                WHERE due_date BETWEEN ? AND ?
+                  AND status <> 'CANCELADO'
                 """;
+
+        return executeTotalQuery(sql, start, end, "Erro ao calcular faturamento previsto");
+    }
+
+    public BigDecimal getTotalOpenByDueDatePeriod(LocalDate start, LocalDate end) {
+        String sql = """
+                SELECT SUM(amount) AS total
+                FROM invoice
+                WHERE due_date BETWEEN ? AND ?
+                  AND status IN ('PENDENTE', 'FATURADO')
+                """;
+
+        return executeTotalQuery(sql, start, end, "Erro ao calcular valores a receber");
+    }
+
+    public BigDecimal getTotalIssuedByIssuePeriod(LocalDate start, LocalDate end) {
+        String sql = """
+                SELECT SUM(amount) AS total
+                FROM invoice
+                WHERE issue_date BETWEEN ? AND ?
+                  AND status IN ('FATURADO', 'PAGO')
+                """;
+
+        return executeTotalQuery(sql, start, end, "Erro ao calcular faturamento emitido");
+    }
+
+    public BigDecimal getTotalPaidByPaymentPeriod(LocalDate start, LocalDate end) {
+        String sql = """
+                SELECT SUM(amount) AS total
+                FROM invoice
+                WHERE payment_date BETWEEN ? AND ?
+                  AND status = 'PAGO'
+                """;
+
+        return executeTotalQuery(sql, start, end, "Erro ao calcular recebimentos");
+    }
+
+    public BigDecimal getTotalCanceledByDueDatePeriod(LocalDate start, LocalDate end) {
+        String sql = """
+                SELECT SUM(amount) AS total
+                FROM invoice
+                WHERE due_date BETWEEN ? AND ?
+                  AND status = 'CANCELADO'
+                """;
+
+        return executeTotalQuery(sql, start, end, "Erro ao calcular faturamentos cancelados");
+    }
+
+    public Map<String, BigDecimal> getTotalByStatusAndDueDatePeriod(LocalDate start, LocalDate end) {
+        String sql = """
+                SELECT status, SUM(amount) AS total
+                FROM invoice
+                WHERE due_date BETWEEN ? AND ?
+                GROUP BY status
+                """;
+
+        Map<String, BigDecimal> totals = new HashMap<>();
 
         try (Connection conn = ConnectionFactory.getConnection();
              PreparedStatement stmt = conn.prepareStatement(sql)) {
 
-            stmt.setInt(1, id);
+            stmt.setDate(1, Date.valueOf(start));
+            stmt.setDate(2, Date.valueOf(end));
+
+            ResultSet rs = stmt.executeQuery();
+
+            while (rs.next()) {
+                BigDecimal total = rs.getBigDecimal("total");
+                totals.put(rs.getString("status"), total != null ? total : BigDecimal.ZERO);
+            }
+
+        } catch (SQLException e) {
+            throw new RuntimeException("Erro ao calcular faturamento por status", e);
+        }
+
+        return totals;
+    }
+
+    public Map<String, BigDecimal> getTotalByCompanyAndDueDatePeriod(LocalDate start, LocalDate end) {
+        String sql = """
+                SELECT c.company_link, SUM(i.amount) AS total
+                FROM invoice i
+                INNER JOIN client c ON i.id_client = c.id
+                WHERE i.due_date BETWEEN ? AND ?
+                  AND i.status <> 'CANCELADO'
+                GROUP BY c.company_link
+                """;
+
+        Map<String, BigDecimal> totals = new HashMap<>();
+
+        try (Connection conn = ConnectionFactory.getConnection();
+             PreparedStatement stmt = conn.prepareStatement(sql)) {
+
+            stmt.setDate(1, Date.valueOf(start));
+            stmt.setDate(2, Date.valueOf(end));
+
+            ResultSet rs = stmt.executeQuery();
+
+            while (rs.next()) {
+                BigDecimal total = rs.getBigDecimal("total");
+                totals.put(rs.getString("company_link"), total != null ? total : BigDecimal.ZERO);
+            }
+
+        } catch (SQLException e) {
+            throw new RuntimeException("Erro ao calcular faturamento por vínculo", e);
+        }
+
+        return totals;
+    }
+
+    public void markAsIssued(int id, LocalDate issueDate) {
+        String sql = """
+            UPDATE invoice
+            SET status = 'FATURADO',
+                issue_date = ?
+            WHERE id = ?
+            AND status = 'PENDENTE'
+            """;
+
+        try (Connection conn = ConnectionFactory.getConnection();
+             PreparedStatement stmt = conn.prepareStatement(sql)) {
+
+            stmt.setDate(1, Date.valueOf(issueDate));
+            stmt.setInt(2, id);
+
             stmt.executeUpdate();
 
         } catch (SQLException e) {
@@ -245,6 +407,27 @@ public class InvoiceDAO {
         } catch (SQLException e) {
             throw new RuntimeException("Erro ao cancelar faturamento", e);
         }
+    }
+
+    private BigDecimal executeTotalQuery(String sql, LocalDate start, LocalDate end, String errorMessage) {
+        try (Connection conn = ConnectionFactory.getConnection();
+             PreparedStatement stmt = conn.prepareStatement(sql)) {
+
+            stmt.setDate(1, Date.valueOf(start));
+            stmt.setDate(2, Date.valueOf(end));
+
+            ResultSet rs = stmt.executeQuery();
+
+            if (rs.next()) {
+                BigDecimal total = rs.getBigDecimal("total");
+                return total != null ? total : BigDecimal.ZERO;
+            }
+
+        } catch (SQLException e) {
+            throw new RuntimeException(errorMessage, e);
+        }
+
+        return BigDecimal.ZERO;
     }
 
     private Invoice mapResultSetToInvoice(ResultSet rs) throws SQLException {

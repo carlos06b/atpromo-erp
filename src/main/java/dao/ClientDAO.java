@@ -11,8 +11,8 @@ public class ClientDAO {
 
     public void save(Client client) {
         String sql = """
-                INSERT INTO client (name, cnpj, phone, active, company_link)
-                VALUES (?, ?, ?, ?, ?)
+                INSERT INTO client (name, cnpj, phone, email, active, company_link)
+                                      VALUES (?, ?, ?, ?, ?, ?)
                 """;
 
         try (Connection conn = ConnectionFactory.getConnection();
@@ -21,8 +21,9 @@ public class ClientDAO {
             stmt.setString(1, client.getName());
             stmt.setString(2, client.getCnpj());
             stmt.setString(3, client.getPhone());
-            stmt.setBoolean(4, client.isActive());
-            stmt.setString(5, client.getCompanyLink());
+            stmt.setString(4, client.getEmail());
+            stmt.setBoolean(5, client.isActive());
+            stmt.setString(6, client.getCompanyLink());
 
             stmt.executeUpdate();
 
@@ -189,12 +190,13 @@ public class ClientDAO {
     public void update(Client client) {
         String sql = """
                 UPDATE client
-                SET name = ?,
-                    cnpj = ?,
-                    phone = ?,
-                    active = ?,
-                    company_link = ?
-                WHERE id = ?
+                            SET name = ?,
+                                cnpj = ?,
+                                phone = ?,
+                                email = ?,
+                                active = ?,
+                                company_link = ?
+                            WHERE id = ?
                 """;
 
         try (Connection conn = ConnectionFactory.getConnection();
@@ -203,9 +205,10 @@ public class ClientDAO {
             stmt.setString(1, client.getName());
             stmt.setString(2, client.getCnpj());
             stmt.setString(3, client.getPhone());
-            stmt.setBoolean(4, client.isActive());
-            stmt.setString(5, client.getCompanyLink());
-            stmt.setInt(6, client.getId());
+            stmt.setString(4, client.getEmail());
+            stmt.setBoolean(5, client.isActive());
+            stmt.setString(6, client.getCompanyLink());
+            stmt.setInt(7, client.getId());
 
             stmt.executeUpdate();
 
@@ -259,6 +262,7 @@ public class ClientDAO {
         client.setPhone(rs.getString("phone"));
         client.setActive(rs.getBoolean("active"));
         client.setCompanyLink(rs.getString("company_link"));
+        client.setEmail(rs.getString("email"));
 
         return client;
     }

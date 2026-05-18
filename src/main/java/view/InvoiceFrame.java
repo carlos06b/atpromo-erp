@@ -11,9 +11,13 @@ import javax.swing.table.DefaultTableModel;
 import javax.swing.table.JTableHeader;
 import java.awt.*;
 import java.math.BigDecimal;
+import java.math.RoundingMode;
+import java.text.NumberFormat;
 import java.time.LocalDate;
+import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
+import java.util.Locale;
 
 public class InvoiceFrame extends JFrame {
 
@@ -21,6 +25,8 @@ public class InvoiceFrame extends JFrame {
     private final ClientController clientController = new ClientController();
 
     private final DateTimeFormatter BR_FORMAT = DateTimeFormatter.ofPattern("dd/MM/yyyy");
+    private final Locale BR_LOCALE = new Locale("pt", "BR");
+    private final NumberFormat MONEY_FORMAT = NumberFormat.getCurrencyInstance(BR_LOCALE);
 
     private final Color ORANGE = new Color(255, 102, 0);
     private final Color BLACK = new Color(18, 18, 18);
@@ -42,6 +48,9 @@ public class InvoiceFrame extends JFrame {
     private JLabel lblCanceled;
 
     public InvoiceFrame() {
+        MONEY_FORMAT.setMinimumFractionDigits(2);
+        MONEY_FORMAT.setMaximumFractionDigits(2);
+
         setTitle("Sistema At Promo - Faturamento");
         setSize(1120, 800);
         setLocationRelativeTo(null);
@@ -75,7 +84,7 @@ public class InvoiceFrame extends JFrame {
         title.setBounds(30, 18, 400, 35);
         header.add(title);
 
-        JLabel subtitle = new JLabel("Controle de cobranças pendentes, faturadas, pagas e canceladas");
+        JLabel subtitle = new JLabel("Controle de cobranças pendentes, faturadas, recebidas e canceladas");
         subtitle.setForeground(new Color(210, 210, 210));
         subtitle.setFont(new Font("Segoe UI", Font.PLAIN, 15));
         subtitle.setBounds(32, 55, 700, 25);
@@ -151,7 +160,7 @@ public class InvoiceFrame extends JFrame {
 
         lblPending = createDashboardLabel("Pendente: R$ 0,00", 25);
         lblIssued = createDashboardLabel("Faturado: R$ 0,00", 285);
-        lblPaid = createDashboardLabel("Pago: R$ 0,00", 545);
+        lblPaid = createDashboardLabel("Recebido: R$ 0,00", 545);
         lblCanceled = createDashboardLabel("Cancelado: 0 registros", 805);
 
         dashboard.add(lblPending);
@@ -172,7 +181,7 @@ public class InvoiceFrame extends JFrame {
         tableModel = new DefaultTableModel(
                 new Object[]{
                         "ID", "Indústria", "Vínculo", "Valor", "Descrição",
-                        "Previsto", "Faturado em", "Pago em", "Status"
+                        "Previsto", "Faturado em", "Recebido em", "Status"
                 }, 0
         ) {
             @Override
@@ -246,7 +255,6 @@ public class InvoiceFrame extends JFrame {
     }
 
     private void createActionButtons(JPanel panel) {
-
         JButton btnCancel = createDangerButton("Cancelar");
         btnCancel.setBounds(200, 655, 150, 38);
         btnCancel.addActionListener(e -> cancelInvoice());
@@ -257,12 +265,11 @@ public class InvoiceFrame extends JFrame {
         btnIssue.addActionListener(e -> markAsIssued());
         panel.add(btnIssue);
 
-        JButton btnPaid = createPrimaryButton("Pagar");
+        JButton btnPaid = createPrimaryButton("Receber");
         btnPaid.setBounds(520, 655, 150, 38);
         btnPaid.addActionListener(e -> markAsPaid());
         panel.add(btnPaid);
 
-        // 👉 NOVO BOTÃO
         JButton btnExcel = createPrimaryButton("Exportar Excel");
         btnExcel.setBounds(680, 655, 180, 38);
         btnExcel.addActionListener(e -> exportExcel());
@@ -295,7 +302,7 @@ public class InvoiceFrame extends JFrame {
         JPanel panel = new JPanel(new GridLayout(0, 1, 5, 5));
         panel.add(new JLabel("Indústria:"));
         panel.add(cbClient);
-        panel.add(new JLabel("Valor:"));
+        panel.add(new JLabel("Valor (ex: 1.234,56):"));
         panel.add(txtAmount);
         panel.add(new JLabel("Descrição:"));
         panel.add(txtDescription);
@@ -318,7 +325,7 @@ public class InvoiceFrame extends JFrame {
                     throw new RuntimeException("Selecione uma indústria.");
                 }
 
-                BigDecimal amount = new BigDecimal(txtAmount.getText().replace(",", "."));
+                BigDecimal amount = parseMoney(txtAmount.getText());
                 LocalDate dueDate = parseBrazilianDate(txtDueDate.getText());
 
                 invoiceController.createPendingInvoice(
@@ -331,8 +338,6 @@ public class InvoiceFrame extends JFrame {
                 JOptionPane.showMessageDialog(this, "Faturamento pendente criado com sucesso.");
                 loadInvoices();
 
-            } catch (NumberFormatException e) {
-                JOptionPane.showMessageDialog(this, "Valor inválido.", "Erro", JOptionPane.ERROR_MESSAGE);
             } catch (Exception e) {
                 JOptionPane.showMessageDialog(this, e.getMessage(), "Erro", JOptionPane.ERROR_MESSAGE);
             }
@@ -381,21 +386,22 @@ public class InvoiceFrame extends JFrame {
             return;
         }
 
-        int confirm = JOptionPane.showConfirmDialog(
-                this,
-                "Deseja marcar este faturamento como FATURADO?",
-                "Confirmação",
-                JOptionPane.YES_NO_OPTION
+        LocalDate issueDate = askDate(
+                "Data de faturamento",
+                "Informe a data de faturamento:",
+                LocalDate.now()
         );
 
-        if (confirm == JOptionPane.YES_OPTION) {
-            try {
-                invoiceController.markAsIssued(id);
-                JOptionPane.showMessageDialog(this, "Faturamento marcado como faturado.");
-                loadInvoices();
-            } catch (RuntimeException e) {
-                JOptionPane.showMessageDialog(this, e.getMessage(), "Erro", JOptionPane.ERROR_MESSAGE);
-            }
+        if (issueDate == null) {
+            return;
+        }
+
+        try {
+            invoiceController.markAsIssued(id, issueDate);
+            JOptionPane.showMessageDialog(this, "Faturamento marcado como faturado.");
+            loadInvoices();
+        } catch (RuntimeException e) {
+            JOptionPane.showMessageDialog(this, e.getMessage(), "Erro", JOptionPane.ERROR_MESSAGE);
         }
     }
 
@@ -406,22 +412,19 @@ public class InvoiceFrame extends JFrame {
             return;
         }
 
-        String paymentDateText = JOptionPane.showInputDialog(
-                this,
-                "Informe a data de pagamento (dd/MM/aaaa):",
-                LocalDate.now().format(BR_FORMAT)
+        LocalDate paymentDate = askDate(
+                "Data de recebimento",
+                "Informe a data de recebimento:",
+                LocalDate.now()
         );
 
-        if (paymentDateText == null || paymentDateText.trim().isEmpty()) {
+        if (paymentDate == null) {
             return;
         }
 
         try {
-            LocalDate paymentDate = parseBrazilianDate(paymentDateText.trim());
-
             invoiceController.markAsPaid(id, paymentDate);
-
-            JOptionPane.showMessageDialog(this, "Faturamento marcado como pago.");
+            JOptionPane.showMessageDialog(this, "Faturamento marcado como recebido.");
             loadInvoices();
 
         } catch (Exception e) {
@@ -506,19 +509,83 @@ public class InvoiceFrame extends JFrame {
 
         lblPending.setText("Pendente: " + formatMoney(pending));
         lblIssued.setText("Faturado: " + formatMoney(issued));
-        lblPaid.setText("Pago: " + formatMoney(paid));
+        lblPaid.setText("Recebido: " + formatMoney(paid));
         lblCanceled.setText("Cancelado: " + canceledCount + " registros");
     }
 
     private String formatMoney(BigDecimal value) {
         if (value == null) {
-            return "R$ 0,00";
+            return MONEY_FORMAT.format(BigDecimal.ZERO);
         }
 
-        return "R$ " + String.format("%,.2f", value)
-                .replace(",", "X")
-                .replace(".", ",")
-                .replace("X", ".");
+        return MONEY_FORMAT.format(value.setScale(2, RoundingMode.HALF_UP));
+    }
+
+    private BigDecimal parseMoney(String value) {
+        if (value == null || value.trim().isEmpty()) {
+            throw new RuntimeException("Valor inválido. Use o formato 1.234,56.");
+        }
+
+        String cleaned = value.trim()
+                .replace("R$", "")
+                .replace(" ", "")
+                .replace("\u00A0", "");
+
+        if (cleaned.contains(",")) {
+            cleaned = cleaned.replace(".", "").replace(",", ".");
+        } else if (cleaned.contains(".")) {
+            int dotCount = cleaned.length() - cleaned.replace(".", "").length();
+            int lastDot = cleaned.lastIndexOf(".");
+            int decimals = cleaned.length() - lastDot - 1;
+
+            if (dotCount > 1 || decimals != 2) {
+                cleaned = cleaned.replace(".", "");
+            }
+        }
+
+        try {
+            BigDecimal amount = new BigDecimal(cleaned).setScale(2, RoundingMode.HALF_UP);
+
+            if (amount.compareTo(BigDecimal.ZERO) <= 0) {
+                throw new RuntimeException("O valor do faturamento deve ser maior que zero.");
+            }
+
+            return amount;
+
+        } catch (NumberFormatException e) {
+            throw new RuntimeException("Valor inválido. Use o formato 1.234,56.");
+        }
+    }
+
+    private LocalDate askDate(String title, String labelText, LocalDate initialDate) {
+        JSpinner dateSpinner = new JSpinner(new SpinnerDateModel());
+        dateSpinner.setEditor(new JSpinner.DateEditor(dateSpinner, "dd/MM/yyyy"));
+        dateSpinner.setFont(new Font("Segoe UI", Font.PLAIN, 13));
+        dateSpinner.setValue(java.util.Date.from(
+                initialDate.atStartOfDay(ZoneId.systemDefault()).toInstant()
+        ));
+
+        JPanel panel = new JPanel(new BorderLayout(0, 8));
+        panel.add(new JLabel(labelText), BorderLayout.NORTH);
+        panel.add(dateSpinner, BorderLayout.CENTER);
+
+        int result = JOptionPane.showConfirmDialog(
+                this,
+                panel,
+                title,
+                JOptionPane.OK_CANCEL_OPTION,
+                JOptionPane.PLAIN_MESSAGE
+        );
+
+        if (result != JOptionPane.OK_OPTION) {
+            return null;
+        }
+
+        java.util.Date selectedDate = (java.util.Date) dateSpinner.getValue();
+
+        return selectedDate.toInstant()
+                .atZone(ZoneId.systemDefault())
+                .toLocalDate();
     }
 
     private String formatDate(LocalDate date) {
@@ -535,28 +602,6 @@ public class InvoiceFrame extends JFrame {
         } catch (Exception e) {
             throw new RuntimeException("Data inválida. Use o formato dd/MM/aaaa.");
         }
-    }
-
-    private JButton createPrimaryButton(String text) {
-        JButton button = new JButton(text);
-        button.setBackground(ORANGE);
-        button.setForeground(WHITE);
-        button.setFocusPainted(false);
-        button.setBorderPainted(false);
-        button.setFont(new Font("Segoe UI", Font.BOLD, 13));
-        button.setCursor(new Cursor(Cursor.HAND_CURSOR));
-        return button;
-    }
-
-    private JButton createDarkButton(String text) {
-        JButton button = new JButton(text);
-        button.setBackground(BLACK);
-        button.setForeground(WHITE);
-        button.setFocusPainted(false);
-        button.setBorderPainted(false);
-        button.setFont(new Font("Segoe UI", Font.BOLD, 13));
-        button.setCursor(new Cursor(Cursor.HAND_CURSOR));
-        return button;
     }
 
     private void exportExcel() {
@@ -582,6 +627,10 @@ public class InvoiceFrame extends JFrame {
             if (option == JFileChooser.APPROVE_OPTION) {
                 String path = chooser.getSelectedFile().getAbsolutePath();
 
+                if (!path.toLowerCase().endsWith(".xlsx")) {
+                    path += ".xlsx";
+                }
+
                 util.ExcelGenerator.generateInvoices(invoices, path);
 
                 JOptionPane.showMessageDialog(this, "Excel gerado com sucesso!");
@@ -590,6 +639,28 @@ public class InvoiceFrame extends JFrame {
         } catch (Exception e) {
             JOptionPane.showMessageDialog(this, e.getMessage(), "Erro", JOptionPane.ERROR_MESSAGE);
         }
+    }
+
+    private JButton createPrimaryButton(String text) {
+        JButton button = new JButton(text);
+        button.setBackground(ORANGE);
+        button.setForeground(WHITE);
+        button.setFocusPainted(false);
+        button.setBorderPainted(false);
+        button.setFont(new Font("Segoe UI", Font.BOLD, 13));
+        button.setCursor(new Cursor(Cursor.HAND_CURSOR));
+        return button;
+    }
+
+    private JButton createDarkButton(String text) {
+        JButton button = new JButton(text);
+        button.setBackground(BLACK);
+        button.setForeground(WHITE);
+        button.setFocusPainted(false);
+        button.setBorderPainted(false);
+        button.setFont(new Font("Segoe UI", Font.BOLD, 13));
+        button.setCursor(new Cursor(Cursor.HAND_CURSOR));
+        return button;
     }
 
     private JButton createDangerButton(String text) {

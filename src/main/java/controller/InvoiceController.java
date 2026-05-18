@@ -63,7 +63,7 @@ public class InvoiceController {
         return invoiceDAO.findIssuedNotPaid();
     }
 
-    public void markAsIssued(int invoiceId) {
+    public void markAsIssued(int invoiceId, LocalDate issueDate) {
         Invoice invoice = invoiceDAO.findById(invoiceId);
 
         if (invoice == null) {
@@ -74,7 +74,11 @@ public class InvoiceController {
             throw new RuntimeException("Apenas faturamentos pendentes podem ser marcados como faturados.");
         }
 
-        invoiceDAO.markAsIssued(invoiceId);
+        if (issueDate == null) {
+            throw new RuntimeException("A data de faturamento é obrigatória.");
+        }
+
+        invoiceDAO.markAsIssued(invoiceId, issueDate);
     }
 
     public void markAsPaid(int invoiceId, LocalDate paymentDate) {
@@ -90,6 +94,10 @@ public class InvoiceController {
 
         if (paymentDate == null) {
             throw new RuntimeException("A data de pagamento é obrigatória.");
+        }
+
+        if (invoice.getIssueDate() != null && paymentDate.isBefore(invoice.getIssueDate())) {
+            throw new RuntimeException("A data de recebimento não pode ser anterior à data de faturamento.");
         }
 
         invoiceDAO.markAsPaid(invoiceId, paymentDate);

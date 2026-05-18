@@ -13,7 +13,7 @@ public class ClientController {
         this.clientDAO = new ClientDAO();
     }
 
-    public void registerClient(String name, String cnpj, String phone, String companyLink) {
+    public void registerClient(String name, String cnpj, String phone, String email, String companyLink) {
         if (name == null || name.trim().isEmpty()) {
             throw new RuntimeException("O nome da indústria é obrigatório.");
         }
@@ -26,6 +26,7 @@ public class ClientController {
         client.setName(name.trim());
         client.setCnpj(formatNullable(cnpj));
         client.setPhone(formatNullable(phone));
+        client.setEmail(formatNullable(email));
         client.setCompanyLink(companyLink);
         client.setActive(true);
 

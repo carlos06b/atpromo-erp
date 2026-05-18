@@ -5,25 +5,28 @@ public class Client {
     private String name;
     private String cnpj;
     private String phone;
+    private String email;
     private boolean active;
     private String companyLink;
 
     public Client() {
     }
 
-    public Client(String name, String cnpj, String phone, boolean active, String companyLink) {
+    public Client(String name, String cnpj, String phone, String email, boolean active, String companyLink) {
         this.companyLink = companyLink;
         this.name = name;
         this.cnpj = cnpj;
         this.phone = phone;
+        this.email = email;
         this.active = active;
     }
 
-    public Client(int id, String name, String cnpj, String phone, boolean active, String companyLink) {
+    public Client(int id, String name, String cnpj, String phone, String email, boolean active, String companyLink) {
         this.id = id;
         this.name = name;
         this.cnpj = cnpj;
         this.phone = phone;
+        this.email = email;
         this.active = active;
         this.companyLink = companyLink;
     }
@@ -38,6 +41,14 @@ public class Client {
 
     public int getId() {
         return id;
+    }
+
+    public String getEmail() {
+        return email;
+    }
+
+    public void setEmail(String email) {
+        this.email = email;
     }
 
     public String getName() {
