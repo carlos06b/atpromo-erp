@@ -191,7 +191,9 @@ public class ExcelGenerator {
                 row.createCell(2).setCellValue(name != null ? name.toUpperCase() : "");
                 row.createCell(3).setCellValue(mapPixType(pixType));
                 row.createCell(4).setCellValue(formatPix(pix, pixType));
-                row.createCell(5).setCellValue(formatMoney(payment.getAmount()));
+                row.createCell(5).setCellValue(
+                        payment.getAmount() != null ? formatMoney(payment.getAmount()) : ""
+                );
                 row.createCell(6).setCellValue(payment.getPaymentDate().format(formatter));
             }
 
@@ -248,6 +250,10 @@ public class ExcelGenerator {
 
     private static String mapRegistrationType(String document) {
         String clean = onlyNumbers(document);
+
+        if (clean.isBlank()) {
+            return "";
+        }
 
         if (clean.length() == 14) {
             return "2"; // CNPJ

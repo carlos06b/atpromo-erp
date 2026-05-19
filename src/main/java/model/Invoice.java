@@ -8,6 +8,7 @@ public class Invoice {
     private int id;
     private int clientId;
     private BigDecimal amount;
+    private BigDecimal receivedAmount;
     private String description;
     private LocalDate dueDate;
     private LocalDate issueDate;
@@ -25,11 +26,12 @@ public class Invoice {
         this.status = "PENDENTE";
     }
 
-    public Invoice(int id, int clientId, BigDecimal amount, String description,
+    public Invoice(int id, int clientId, BigDecimal amount, BigDecimal receivedAmount, String description,
                    LocalDate dueDate, LocalDate issueDate, LocalDate paymentDate, String status) {
         this.id = id;
         this.clientId = clientId;
         this.amount = amount;
+        this.receivedAmount = receivedAmount;
         this.description = description;
         this.dueDate = dueDate;
         this.issueDate = issueDate;
@@ -47,6 +49,10 @@ public class Invoice {
 
     public BigDecimal getAmount() {
         return amount;
+    }
+
+    public BigDecimal getReceivedAmount() {
+        return receivedAmount;
     }
 
     public String getDescription() {
@@ -79,6 +85,10 @@ public class Invoice {
 
     public void setAmount(BigDecimal amount) {
         this.amount = amount;
+    }
+
+    public void setReceivedAmount(BigDecimal receivedAmount) {
+        this.receivedAmount = receivedAmount;
     }
 
     public void setDescription(String description) {

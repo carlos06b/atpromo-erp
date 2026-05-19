@@ -4,11 +4,14 @@ import dao.FinancePromoterDAO;
 import dao.PromoterDAO;
 import model.FinancePromoter;
 import model.Promoter;
+import model.PromoterPaymentData;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
+import java.util.ArrayList;
+import java.util.Comparator;
 
 public class PayrollController {
 
@@ -104,6 +107,39 @@ public class PayrollController {
         report.append("TOTAL LÍQUIDO DA FOLHA: R$ ").append(totalLiquido).append("\n");
 
         return report.toString();
+    }
+
+    public List<PromoterPaymentData> getMeiPixBatch(LocalDate paymentDate) {
+        List<Promoter> promoters = promoterDAO.findAll();
+        List<PromoterPaymentData> payments = new ArrayList<>();
+
+        for (Promoter promoter : promoters) {
+            if (!promoter.isActive()) {
+                continue;
+            }
+
+            if (promoter.getType() == null || !promoter.getType().equalsIgnoreCase("MEI")) {
+                continue;
+            }
+
+            payments.add(
+                    new PromoterPaymentData(
+                            promoter.getCpf(),
+                            promoter.getName(),
+                            promoter.getPix(),
+                            promoter.getPixType(),
+                            null,
+                            paymentDate
+                    )
+            );
+        }
+
+        payments.sort(Comparator.comparing(
+                PromoterPaymentData::getName,
+                String.CASE_INSENSITIVE_ORDER
+        ));
+
+        return payments;
     }
 
     private String formatDate(LocalDate date) {

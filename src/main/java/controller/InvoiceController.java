@@ -42,11 +42,22 @@ public class InvoiceController {
         Invoice invoice = new Invoice();
         invoice.setClientId(clientId);
         invoice.setAmount(amount);
+        invoice.setReceivedAmount(null);
         invoice.setDescription(formatNullable(description));
         invoice.setDueDate(dueDate);
         invoice.setStatus("PENDENTE");
 
         invoiceDAO.save(invoice);
+    }
+
+    public Invoice findById(int id) {
+        Invoice invoice = invoiceDAO.findById(id);
+
+        if (invoice == null) {
+            throw new RuntimeException("Faturamento não encontrado.");
+        }
+
+        return invoice;
     }
 
     public List<InvoiceView> listByPeriod(LocalDate start, LocalDate end) {
@@ -61,6 +72,53 @@ public class InvoiceController {
 
     public List<InvoiceView> listIssuedNotPaid() {
         return invoiceDAO.findIssuedNotPaid();
+    }
+
+    public void updateInvoice(int invoiceId, int clientId, BigDecimal amount, String description, LocalDate dueDate) {
+        Invoice existingInvoice = invoiceDAO.findById(invoiceId);
+
+        if (existingInvoice == null) {
+            throw new RuntimeException("Faturamento não encontrado.");
+        }
+
+        if ("PAGO".equals(existingInvoice.getStatus())) {
+            throw new RuntimeException("Faturamentos recebidos não podem ser editados.");
+        }
+
+        if ("CANCELADO".equals(existingInvoice.getStatus())) {
+            throw new RuntimeException("Faturamentos cancelados não podem ser editados.");
+        }
+
+        Client client = clientDAO.findById(clientId);
+
+        if (client == null) {
+            throw new RuntimeException("Indústria não encontrada.");
+        }
+
+        if (!client.isActive()) {
+            throw new RuntimeException("Não é possível vincular faturamento a uma indústria inativa.");
+        }
+
+        if (amount == null || amount.compareTo(BigDecimal.ZERO) <= 0) {
+            throw new RuntimeException("O valor do faturamento deve ser maior que zero.");
+        }
+
+        if (dueDate == null) {
+            throw new RuntimeException("A data prevista de faturamento é obrigatória.");
+        }
+
+        Invoice invoice = new Invoice();
+        invoice.setId(invoiceId);
+        invoice.setClientId(clientId);
+        invoice.setAmount(amount);
+        invoice.setReceivedAmount(existingInvoice.getReceivedAmount());
+        invoice.setDescription(formatNullable(description));
+        invoice.setDueDate(dueDate);
+        invoice.setIssueDate(existingInvoice.getIssueDate());
+        invoice.setPaymentDate(existingInvoice.getPaymentDate());
+        invoice.setStatus(existingInvoice.getStatus());
+
+        invoiceDAO.update(invoice);
     }
 
     public void markAsIssued(int invoiceId, LocalDate issueDate) {
@@ -81,7 +139,7 @@ public class InvoiceController {
         invoiceDAO.markAsIssued(invoiceId, issueDate);
     }
 
-    public void markAsPaid(int invoiceId, LocalDate paymentDate) {
+    public void markAsPaid(int invoiceId, LocalDate paymentDate, BigDecimal receivedAmount) {
         Invoice invoice = invoiceDAO.findById(invoiceId);
 
         if (invoice == null) {
@@ -89,18 +147,22 @@ public class InvoiceController {
         }
 
         if (!"FATURADO".equals(invoice.getStatus())) {
-            throw new RuntimeException("Apenas faturamentos já emitidos podem ser marcados como pagos.");
+            throw new RuntimeException("Apenas faturamentos já faturados podem ser marcados como recebidos.");
         }
 
         if (paymentDate == null) {
-            throw new RuntimeException("A data de pagamento é obrigatória.");
+            throw new RuntimeException("A data de recebimento é obrigatória.");
+        }
+
+        if (receivedAmount == null || receivedAmount.compareTo(BigDecimal.ZERO) <= 0) {
+            throw new RuntimeException("O valor recebido deve ser maior que zero.");
         }
 
         if (invoice.getIssueDate() != null && paymentDate.isBefore(invoice.getIssueDate())) {
             throw new RuntimeException("A data de recebimento não pode ser anterior à data de faturamento.");
         }
 
-        invoiceDAO.markAsPaid(invoiceId, paymentDate);
+        invoiceDAO.markAsPaid(invoiceId, paymentDate, receivedAmount);
     }
 
     public void cancelInvoice(int id) {
@@ -111,7 +173,7 @@ public class InvoiceController {
         }
 
         if ("PAGO".equals(invoice.getStatus())) {
-            throw new RuntimeException("Não é possível cancelar faturamento já pago.");
+            throw new RuntimeException("Não é possível cancelar faturamento já recebido.");
         }
 
         invoiceDAO.cancelInvoice(id);

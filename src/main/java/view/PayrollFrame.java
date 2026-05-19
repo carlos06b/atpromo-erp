@@ -6,6 +6,7 @@ import javax.swing.*;
 import java.awt.*;
 import java.time.LocalDate;
 import java.time.ZoneId;
+import java.util.List;
 
 public class PayrollFrame extends JFrame {
 
@@ -116,11 +117,15 @@ public class PayrollFrame extends JFrame {
         filterPanel.add(typeBox);
 
         JButton btnGenerate = createPrimaryButton("Gerar Folha");
-        btnGenerate.setBounds(610, 58, 135, 40);
+        btnGenerate.setBounds(500, 58, 130, 40);
         filterPanel.add(btnGenerate);
 
+        JButton btnPixBatch = createPrimaryButton("PIX MEI");
+        btnPixBatch.setBounds(640, 58, 120, 40);
+        filterPanel.add(btnPixBatch);
+
         JButton btnClear = createSecondaryButton("Limpar");
-        btnClear.setBounds(755, 58, 95, 40);
+        btnClear.setBounds(770, 58, 80, 40);
         filterPanel.add(btnClear);
 
         JPanel resultPanel = new JPanel(new BorderLayout());
@@ -150,6 +155,7 @@ public class PayrollFrame extends JFrame {
         resultPanel.add(scrollPane, BorderLayout.CENTER);
 
         btnGenerate.addActionListener(e -> generatePayroll());
+        btnPixBatch.addActionListener(e -> exportMeiPixBatch());
         btnClear.addActionListener(e -> resultArea.setText(""));
 
         return main;
@@ -177,6 +183,68 @@ public class PayrollFrame extends JFrame {
         } else {
             resultArea.setText(result);
             resultArea.setCaretPosition(0);
+        }
+    }
+
+    private void exportMeiPixBatch() {
+        LocalDate defaultDate = LocalDate.now().withDayOfMonth(20);
+
+        JSpinner paymentDateSpinner = new JSpinner(new SpinnerDateModel());
+        paymentDateSpinner.setEditor(new JSpinner.DateEditor(paymentDateSpinner, "dd/MM/yyyy"));
+        paymentDateSpinner.setValue(java.util.Date.from(
+                defaultDate.atStartOfDay(ZoneId.systemDefault()).toInstant()
+        ));
+
+        int dateOption = JOptionPane.showConfirmDialog(
+                this,
+                paymentDateSpinner,
+                "Data do pagamento dos MEIs",
+                JOptionPane.OK_CANCEL_OPTION,
+                JOptionPane.PLAIN_MESSAGE
+        );
+
+        if (dateOption != JOptionPane.OK_OPTION) {
+            return;
+        }
+
+        java.util.Date selectedDate = (java.util.Date) paymentDateSpinner.getValue();
+
+        LocalDate paymentDate = selectedDate.toInstant()
+                .atZone(ZoneId.systemDefault())
+                .toLocalDate();
+
+        java.util.List<model.PromoterPaymentData> payments = payrollController.getMeiPixBatch(paymentDate);
+
+        if (payments.isEmpty()) {
+            JOptionPane.showMessageDialog(
+                    this,
+                    "Nenhum MEI ativo encontrado para gerar o PIX lote.",
+                    "Atenção",
+                    JOptionPane.WARNING_MESSAGE
+            );
+            return;
+        }
+
+        JFileChooser chooser = new JFileChooser();
+        chooser.setSelectedFile(new java.io.File("pix_lote_meis_ajuda_custo.xlsx"));
+
+        int option = chooser.showSaveDialog(this);
+
+        if (option == JFileChooser.APPROVE_OPTION) {
+            String path = chooser.getSelectedFile().getAbsolutePath();
+
+            if (!path.toLowerCase().endsWith(".xlsx")) {
+                path += ".xlsx";
+            }
+
+            util.ExcelGenerator.generatePixBatch(payments, path);
+
+            JOptionPane.showMessageDialog(
+                    this,
+                    "PIX lote dos MEIs gerado com sucesso.\n\nO campo Valor ficará em branco para preenchimento manual.",
+                    "Sucesso",
+                    JOptionPane.INFORMATION_MESSAGE
+            );
         }
     }
 

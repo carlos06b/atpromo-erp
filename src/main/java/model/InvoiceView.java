@@ -9,6 +9,7 @@ public class InvoiceView {
     private String clientName;
     private String companyLink;
     private BigDecimal amount;
+    private BigDecimal receivedAmount;
     private String description;
     private LocalDate dueDate;
     private LocalDate issueDate;
@@ -32,6 +33,10 @@ public class InvoiceView {
 
     public BigDecimal getAmount() {
         return amount;
+    }
+
+    public BigDecimal getReceivedAmount() {
+        return receivedAmount;
     }
 
     public String getDescription() {
@@ -68,6 +73,10 @@ public class InvoiceView {
 
     public void setAmount(BigDecimal amount) {
         this.amount = amount;
+    }
+
+    public void setReceivedAmount(BigDecimal receivedAmount) {
+        this.receivedAmount = receivedAmount;
     }
 
     public void setDescription(String description) {

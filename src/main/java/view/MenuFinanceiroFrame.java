@@ -3,7 +3,10 @@ package view;
 import model.User;
 
 import javax.swing.*;
+import javax.swing.border.EmptyBorder;
 import java.awt.*;
+import java.awt.event.MouseAdapter;
+import java.awt.event.MouseEvent;
 
 public class MenuFinanceiroFrame extends JFrame {
 
@@ -12,16 +15,20 @@ public class MenuFinanceiroFrame extends JFrame {
     private final Color WHITE = Color.WHITE;
     private final Color LIGHT_GRAY = new Color(245, 245, 245);
     private final Color DARK_GRAY = new Color(55, 55, 55);
+    private final Color BORDER = new Color(225, 225, 225);
+    private final Color SOFT_ORANGE = new Color(255, 244, 235);
 
     public MenuFinanceiroFrame(User user) {
         setTitle("Sistema At Promo - Financeiro");
-        setSize(950, 600);
+        setSize(1200, 760);
+        setMinimumSize(new Dimension(1100, 700));
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         setLocationRelativeTo(null);
-        setResizable(false);
+        setResizable(true);
+        setExtendedState(JFrame.MAXIMIZED_BOTH);
 
         JPanel mainPanel = new JPanel(new BorderLayout());
-        mainPanel.setBackground(WHITE);
+        mainPanel.setBackground(LIGHT_GRAY);
 
         mainPanel.add(createSidebar(user), BorderLayout.WEST);
         mainPanel.add(createContentPanel(user), BorderLayout.CENTER);
@@ -31,157 +38,420 @@ public class MenuFinanceiroFrame extends JFrame {
     }
 
     private JPanel createSidebar(User user) {
-        JPanel sidebar = new JPanel(null);
-        sidebar.setPreferredSize(new Dimension(270, 600));
+        JPanel sidebar = new JPanel(new BorderLayout());
+        sidebar.setPreferredSize(new Dimension(285, 0));
         sidebar.setBackground(BLACK);
+
+        JPanel top = new JPanel();
+        top.setOpaque(false);
+        top.setLayout(new BoxLayout(top, BoxLayout.Y_AXIS));
+        top.setBorder(new EmptyBorder(30, 28, 20, 28));
+
+        JPanel brand = new JPanel(new FlowLayout(FlowLayout.LEFT, 0, 0));
+        brand.setOpaque(false);
+        brand.setMaximumSize(new Dimension(230, 58));
+        brand.setAlignmentX(Component.LEFT_ALIGNMENT);
 
         JLabel logoAt = new JLabel("AT");
         logoAt.setForeground(ORANGE);
         logoAt.setFont(new Font("Segoe UI", Font.BOLD, 42));
-        logoAt.setBounds(35, 30, 80, 50);
-        sidebar.add(logoAt);
+        brand.add(logoAt);
 
-        JLabel logoPromo = new JLabel("PROMO");
+        JLabel logoPromo = new JLabel(" PROMO");
         logoPromo.setForeground(WHITE);
         logoPromo.setFont(new Font("Segoe UI", Font.BOLD, 26));
-        logoPromo.setBounds(95, 40, 150, 35);
-        sidebar.add(logoPromo);
+        brand.add(logoPromo);
 
-        JPanel line = new JPanel();
-        line.setBackground(ORANGE);
-        line.setBounds(35, 95, 190, 4);
-        sidebar.add(line);
+        JPanel orangeLine = new JPanel();
+        orangeLine.setBackground(ORANGE);
+        orangeLine.setMaximumSize(new Dimension(210, 4));
+        orangeLine.setPreferredSize(new Dimension(210, 4));
+        orangeLine.setAlignmentX(Component.LEFT_ALIGNMENT);
 
-        JLabel setor = new JLabel("Módulo Financeiro");
-        setor.setForeground(WHITE);
-        setor.setFont(new Font("Segoe UI", Font.BOLD, 18));
-        setor.setBounds(35, 135, 210, 30);
-        sidebar.add(setor);
+        JLabel module = new JLabel("Módulo Financeiro");
+        module.setForeground(WHITE);
+        module.setFont(new Font("Segoe UI", Font.BOLD, 20));
+        module.setAlignmentX(Component.LEFT_ALIGNMENT);
 
-        JLabel userLabel = new JLabel("<html>Usuário:<br><b>" + user.getName() + "</b></html>");
-        userLabel.setForeground(new Color(210, 210, 210));
-        userLabel.setFont(new Font("Segoe UI", Font.PLAIN, 14));
-        userLabel.setBounds(35, 175, 210, 55);
-        sidebar.add(userLabel);
+        JLabel subtitle = new JLabel("Controle financeiro");
+        subtitle.setForeground(new Color(170, 170, 170));
+        subtitle.setFont(new Font("Segoe UI", Font.PLAIN, 13));
+        subtitle.setAlignmentX(Component.LEFT_ALIGNMENT);
 
-        JLabel cargoLabel = new JLabel("Cargo: " + user.getJobTittle());
-        cargoLabel.setForeground(new Color(170, 170, 170));
-        cargoLabel.setFont(new Font("Segoe UI", Font.PLAIN, 13));
-        cargoLabel.setBounds(35, 235, 210, 25);
-        sidebar.add(cargoLabel);
+        top.add(brand);
+        top.add(Box.createVerticalStrut(12));
+        top.add(orangeLine);
+        top.add(Box.createVerticalStrut(32));
+        top.add(module);
+        top.add(Box.createVerticalStrut(4));
+        top.add(subtitle);
+        top.add(Box.createVerticalStrut(28));
+        top.add(createUserBox(user));
+        top.add(Box.createVerticalStrut(28));
 
-        JLabel footer = new JLabel("Sistema interno");
-        footer.setForeground(new Color(150, 150, 150));
+        top.add(createSidebarButton("Painel Financeiro", true, null));
+        top.add(Box.createVerticalStrut(10));
+        top.add(createSidebarButton("Solicitações", false, () -> new RequestFrame(user)));
+        top.add(Box.createVerticalStrut(10));
+        top.add(createSidebarButton("Faturamento", false, () -> new InvoiceFrame()));
+        top.add(Box.createVerticalStrut(10));
+        top.add(createSidebarButton("Despesas", false, () -> new ExpenseFrame()));
+        top.add(Box.createVerticalStrut(10));
+        top.add(createSidebarButton("Relatórios", false, () -> new ReportFrame()));
+        top.add(Box.createVerticalStrut(10));
+        top.add(createSidebarButton("Clientes", false, () -> new ClientFrame()));
+
+        JPanel bottom = new JPanel();
+        bottom.setOpaque(false);
+        bottom.setLayout(new BoxLayout(bottom, BoxLayout.Y_AXIS));
+        bottom.setBorder(new EmptyBorder(0, 28, 30, 28));
+
+        JLabel footer = new JLabel("Sistema interno AT Promo");
+        footer.setForeground(new Color(145, 145, 145));
         footer.setFont(new Font("Segoe UI", Font.PLAIN, 12));
-        footer.setBounds(35, 515, 200, 25);
-        sidebar.add(footer);
+        footer.setAlignmentX(Component.LEFT_ALIGNMENT);
+
+        JButton logoutButton = createLogoutButton();
+
+        bottom.add(footer);
+        bottom.add(Box.createVerticalStrut(14));
+        bottom.add(logoutButton);
+
+        sidebar.add(top, BorderLayout.CENTER);
+        sidebar.add(bottom, BorderLayout.SOUTH);
 
         return sidebar;
     }
 
+    private JPanel createUserBox(User user) {
+        JPanel box = new JPanel(new BorderLayout(0, 5));
+        box.setBackground(new Color(30, 30, 30));
+        box.setBorder(BorderFactory.createCompoundBorder(
+                BorderFactory.createLineBorder(new Color(48, 48, 48)),
+                new EmptyBorder(14, 14, 14, 14)
+        ));
+        box.setMaximumSize(new Dimension(230, 86));
+        box.setAlignmentX(Component.LEFT_ALIGNMENT);
+
+        JLabel name = new JLabel(user.getName());
+        name.setForeground(WHITE);
+        name.setFont(new Font("Segoe UI", Font.BOLD, 15));
+
+        JLabel role = new JLabel("Cargo: " + user.getJobTittle());
+        role.setForeground(new Color(180, 180, 180));
+        role.setFont(new Font("Segoe UI", Font.PLAIN, 12));
+
+        box.add(name, BorderLayout.NORTH);
+        box.add(role, BorderLayout.CENTER);
+
+        return box;
+    }
+
     private JPanel createContentPanel(User user) {
-        JPanel panel = new JPanel(null);
+        JPanel panel = new JPanel(new BorderLayout(0, 24));
         panel.setBackground(LIGHT_GRAY);
+        panel.setBorder(new EmptyBorder(34, 42, 34, 42));
 
-        JLabel title = new JLabel("Painel Financeiro");
-        title.setForeground(BLACK);
-        title.setFont(new Font("Segoe UI", Font.BOLD, 30));
-        title.setBounds(45, 35, 400, 40);
-        panel.add(title);
+        panel.add(createTopHeader(), BorderLayout.NORTH);
 
-        JLabel subtitle = new JLabel("Gerencie solicitações, relatórios, folha de pagamento e despesas da empresa.");
-        subtitle.setForeground(DARK_GRAY);
-        subtitle.setFont(new Font("Segoe UI", Font.PLAIN, 15));
-        subtitle.setBounds(48, 78, 620, 30);
-        panel.add(subtitle);
+        JPanel center = new JPanel(new BorderLayout(0, 24));
+        center.setOpaque(false);
 
-        JPanel cardsPanel = new JPanel(new GridLayout(3, 2, 22, 22));
-        cardsPanel.setBackground(LIGHT_GRAY);
-        cardsPanel.setBounds(45, 135, 585, 290);
+        center.add(createOverviewPanel(), BorderLayout.NORTH);
+        center.add(createModulesPanel(user), BorderLayout.CENTER);
 
-        cardsPanel.add(createMenuButton(
-                "Solicitações",
-                "Aprovar ou rejeitar solicitações do RH",
-                e -> new RequestFrame(user)
-        ));
-
-        cardsPanel.add(createMenuButton(
-                "Relatórios",
-                "Consultar relatórios financeiros por período",
-                e -> new ReportFrame()
-        ));
-
-        cardsPanel.add(createMenuButton(
-                "Clientes / Indústrias",
-                "Cadastrar e gerenciar indústrias atendidas",
-                e -> new ClientFrame().setVisible(true)
-        ));
-
-        cardsPanel.add(createMenuButton(
-                "Faturamento",
-                "Controlar cobranças, emissão e pagamentos",
-                e -> new InvoiceFrame()
-        ));
-
-        cardsPanel.add(createMenuButton(
-                "Folha de Pagamento",
-                "Visualizar salários, adicionais e descontos",
-                e -> new PayrollFrame()
-        ));
-
-        cardsPanel.add(createMenuButton(
-                "Despesas",
-                "Controlar despesas fixas e variáveis",
-                e -> new ExpenseFrame()
-        ));
-
-        panel.add(cardsPanel);
-
-        JButton logoutButton = new JButton("Sair do sistema");
-        logoutButton.setBounds(455, 480, 175, 42);
-        logoutButton.setBackground(BLACK);
-        logoutButton.setForeground(WHITE);
-        logoutButton.setFocusPainted(false);
-        logoutButton.setBorderPainted(false);
-        logoutButton.setFont(new Font("Segoe UI", Font.BOLD, 14));
-        logoutButton.setCursor(new Cursor(Cursor.HAND_CURSOR));
-        logoutButton.addActionListener(e -> {
-            dispose();
-            new LoginFrame();
-        });
-        panel.add(logoutButton);
+        panel.add(center, BorderLayout.CENTER);
 
         return panel;
     }
 
-    private JButton createMenuButton(String title, String description, java.awt.event.ActionListener action) {
-        JButton button = new JButton("<html><b style='font-size:14px;'>" + title + "</b><br><span style='font-size:10px;'>"
-                + description + "</span></html>");
+    private JPanel createTopHeader() {
+        JPanel header = new JPanel(new BorderLayout());
+        header.setOpaque(false);
 
+        JPanel titleArea = new JPanel();
+        titleArea.setOpaque(false);
+        titleArea.setLayout(new BoxLayout(titleArea, BoxLayout.Y_AXIS));
+
+        JLabel title = new JLabel("Painel Financeiro");
+        title.setForeground(BLACK);
+        title.setFont(new Font("Segoe UI", Font.BOLD, 32));
+
+        JLabel subtitle = new JLabel("Central de controle para solicitações, faturamento, despesas, folha e relatórios.");
+        subtitle.setForeground(DARK_GRAY);
+        subtitle.setFont(new Font("Segoe UI", Font.PLAIN, 15));
+
+        titleArea.add(title);
+        titleArea.add(Box.createVerticalStrut(6));
+        titleArea.add(subtitle);
+
+        JLabel badge = new JLabel("FIN");
+        badge.setOpaque(true);
+        badge.setBackground(ORANGE);
+        badge.setForeground(WHITE);
+        badge.setFont(new Font("Segoe UI", Font.BOLD, 16));
+        badge.setHorizontalAlignment(SwingConstants.CENTER);
+        badge.setPreferredSize(new Dimension(72, 38));
+
+        header.add(titleArea, BorderLayout.WEST);
+        header.add(badge, BorderLayout.EAST);
+
+        return header;
+    }
+
+    private JPanel createOverviewPanel() {
+        JPanel overview = new JPanel(new GridLayout(1, 3, 16, 0));
+        overview.setOpaque(false);
+        overview.setPreferredSize(new Dimension(0, 112));
+
+        overview.add(createInfoCard("Recebimentos", "Faturamentos pendentes, faturados e recebidos", ORANGE));
+        overview.add(createInfoCard("Saídas", "Despesas, solicitações aprovadas e folha", BLACK));
+        overview.add(createInfoCard("Análise", "Relatórios por período para tomada de decisão", new Color(80, 80, 80)));
+
+        return overview;
+    }
+
+    private JPanel createInfoCard(String title, String description, Color accent) {
+        JPanel card = new JPanel(new BorderLayout(14, 0));
+        card.setBackground(WHITE);
+        card.setBorder(BorderFactory.createCompoundBorder(
+                BorderFactory.createLineBorder(BORDER),
+                new EmptyBorder(18, 18, 18, 18)
+        ));
+
+        JPanel bar = new JPanel();
+        bar.setBackground(accent);
+        bar.setPreferredSize(new Dimension(5, 1));
+        card.add(bar, BorderLayout.WEST);
+
+        JPanel text = new JPanel();
+        text.setOpaque(false);
+        text.setLayout(new BoxLayout(text, BoxLayout.Y_AXIS));
+
+        JLabel titleLabel = new JLabel(title);
+        titleLabel.setForeground(BLACK);
+        titleLabel.setFont(new Font("Segoe UI", Font.BOLD, 18));
+
+        JLabel descriptionLabel = new JLabel("<html>" + description + "</html>");
+        descriptionLabel.setForeground(DARK_GRAY);
+        descriptionLabel.setFont(new Font("Segoe UI", Font.PLAIN, 13));
+
+        text.add(titleLabel);
+        text.add(Box.createVerticalStrut(8));
+        text.add(descriptionLabel);
+
+        card.add(text, BorderLayout.CENTER);
+
+        return card;
+    }
+
+    private JPanel createModulesPanel(User user) {
+        JPanel wrapper = new JPanel(new BorderLayout(0, 14));
+        wrapper.setOpaque(false);
+
+        JLabel sectionTitle = new JLabel("Módulos disponíveis");
+        sectionTitle.setForeground(BLACK);
+        sectionTitle.setFont(new Font("Segoe UI", Font.BOLD, 20));
+
+        JPanel grid = new JPanel(new GridLayout(2, 3, 18, 18));
+        grid.setOpaque(false);
+
+        grid.add(createActionCard(
+                "Solicitações",
+                "Aprove, rejeite e acompanhe solicitações enviadas pelo RH para pagamento ou controle financeiro.",
+                "Abrir solicitações",
+                BLACK,
+                () -> new RequestFrame(user)
+        ));
+
+        grid.add(createActionCard(
+                "Faturamento",
+                "Controle valores faturados, recebidos, datas de emissão, recebimento e status de cobrança.",
+                "Abrir faturamento",
+                ORANGE,
+                () -> new InvoiceFrame()
+        ));
+
+        grid.add(createActionCard(
+                "Despesas",
+                "Registre, edite e acompanhe despesas fixas e variáveis da operação.",
+                "Abrir despesas",
+                new Color(80, 80, 80),
+                () -> new ExpenseFrame()
+        ));
+
+        grid.add(createActionCard(
+                "Relatórios",
+                "Gere uma visão consolidada do financeiro por período para análise e apresentação.",
+                "Abrir relatórios",
+                new Color(70, 70, 70),
+                () -> new ReportFrame()
+        ));
+
+        grid.add(createActionCard(
+                "Clientes / Indústrias",
+                "Cadastre e mantenha os dados das indústrias atendidas pela empresa.",
+                "Abrir clientes",
+                ORANGE,
+                () -> new ClientFrame()
+        ));
+
+        grid.add(createActionCard(
+                "Folha de Pagamento",
+                "Consulte valores, períodos, promotores e gere informações de pagamento com mais segurança.",
+                "Abrir folha",
+                BLACK,
+                () -> new PayrollFrame()
+        ));
+
+        wrapper.add(sectionTitle, BorderLayout.NORTH);
+        wrapper.add(grid, BorderLayout.CENTER);
+
+        return wrapper;
+    }
+
+    private JPanel createActionCard(String title, String description, String buttonText, Color accent, Runnable action) {
+        JPanel card = new JPanel(new BorderLayout(0, 16));
+        card.setBackground(WHITE);
+        card.setBorder(BorderFactory.createCompoundBorder(
+                BorderFactory.createLineBorder(BORDER),
+                new EmptyBorder(22, 22, 22, 22)
+        ));
+        card.setCursor(new Cursor(Cursor.HAND_CURSOR));
+
+        JPanel top = new JPanel(new BorderLayout(12, 0));
+        top.setOpaque(false);
+
+        JPanel mark = new JPanel();
+        mark.setBackground(accent);
+        mark.setPreferredSize(new Dimension(7, 34));
+        top.add(mark, BorderLayout.WEST);
+
+        JLabel titleLabel = new JLabel(title);
+        titleLabel.setForeground(BLACK);
+        titleLabel.setFont(new Font("Segoe UI", Font.BOLD, 20));
+        top.add(titleLabel, BorderLayout.CENTER);
+
+        JTextArea descriptionArea = new JTextArea(description);
+        descriptionArea.setEditable(false);
+        descriptionArea.setOpaque(false);
+        descriptionArea.setLineWrap(true);
+        descriptionArea.setWrapStyleWord(true);
+        descriptionArea.setForeground(DARK_GRAY);
+        descriptionArea.setFont(new Font("Segoe UI", Font.PLAIN, 14));
+        descriptionArea.setFocusable(false);
+
+        JButton button = createCardButton(buttonText, action);
+
+        card.add(top, BorderLayout.NORTH);
+        card.add(descriptionArea, BorderLayout.CENTER);
+        card.add(button, BorderLayout.SOUTH);
+
+        card.addMouseListener(new MouseAdapter() {
+            @Override
+            public void mouseClicked(MouseEvent e) {
+                action.run();
+            }
+
+            @Override
+            public void mouseEntered(MouseEvent e) {
+                card.setBackground(SOFT_ORANGE);
+            }
+
+            @Override
+            public void mouseExited(MouseEvent e) {
+                card.setBackground(WHITE);
+            }
+        });
+
+        return card;
+    }
+
+    private JButton createSidebarButton(String text, boolean active, Runnable action) {
+        JButton button = new JButton(text);
+        button.setMaximumSize(new Dimension(230, 42));
+        button.setPreferredSize(new Dimension(230, 42));
+        button.setAlignmentX(Component.LEFT_ALIGNMENT);
+        button.setHorizontalAlignment(SwingConstants.LEFT);
+        button.setFocusPainted(false);
+        button.setBorder(BorderFactory.createEmptyBorder(0, 16, 0, 16));
+        button.setFont(new Font("Segoe UI", Font.BOLD, 13));
+        button.setCursor(new Cursor(Cursor.HAND_CURSOR));
+
+        if (active) {
+            button.setBackground(ORANGE);
+            button.setForeground(WHITE);
+        } else {
+            button.setBackground(new Color(28, 28, 28));
+            button.setForeground(new Color(220, 220, 220));
+        }
+
+        if (action != null) {
+            button.addActionListener(e -> action.run());
+        }
+
+        button.addMouseListener(new MouseAdapter() {
+            @Override
+            public void mouseEntered(MouseEvent e) {
+                if (!active) {
+                    button.setBackground(new Color(42, 42, 42));
+                    button.setForeground(WHITE);
+                }
+            }
+
+            @Override
+            public void mouseExited(MouseEvent e) {
+                if (!active) {
+                    button.setBackground(new Color(28, 28, 28));
+                    button.setForeground(new Color(220, 220, 220));
+                }
+            }
+        });
+
+        return button;
+    }
+
+    private JButton createCardButton(String text, Runnable action) {
+        JButton button = new JButton(text);
+        button.setBackground(BLACK);
+        button.setForeground(WHITE);
+        button.setFocusPainted(false);
+        button.setBorderPainted(false);
+        button.setFont(new Font("Segoe UI", Font.BOLD, 13));
+        button.setPreferredSize(new Dimension(150, 38));
+        button.setCursor(new Cursor(Cursor.HAND_CURSOR));
+        button.addActionListener(e -> action.run());
+
+        button.addMouseListener(new MouseAdapter() {
+            @Override
+            public void mouseEntered(MouseEvent e) {
+                button.setBackground(ORANGE);
+            }
+
+            @Override
+            public void mouseExited(MouseEvent e) {
+                button.setBackground(BLACK);
+            }
+        });
+
+        return button;
+    }
+
+    private JButton createLogoutButton() {
+        JButton button = new JButton("Sair do sistema");
+        button.setMaximumSize(new Dimension(230, 42));
+        button.setPreferredSize(new Dimension(230, 42));
+        button.setAlignmentX(Component.LEFT_ALIGNMENT);
         button.setBackground(WHITE);
         button.setForeground(BLACK);
         button.setFocusPainted(false);
-        button.setBorder(BorderFactory.createCompoundBorder(
-                BorderFactory.createLineBorder(new Color(225, 225, 225)),
-                BorderFactory.createEmptyBorder(18, 18, 18, 18)
-        ));
-        button.setFont(new Font("Segoe UI", Font.PLAIN, 14));
-        button.setHorizontalAlignment(SwingConstants.LEFT);
+        button.setBorderPainted(false);
+        button.setFont(new Font("Segoe UI", Font.BOLD, 13));
         button.setCursor(new Cursor(Cursor.HAND_CURSOR));
-        button.addActionListener(action);
 
-        button.addMouseListener(new java.awt.event.MouseAdapter() {
-            @Override
-            public void mouseEntered(java.awt.event.MouseEvent e) {
-                button.setBackground(ORANGE);
-                button.setForeground(WHITE);
-            }
-
-            @Override
-            public void mouseExited(java.awt.event.MouseEvent e) {
-                button.setBackground(WHITE);
-                button.setForeground(BLACK);
-            }
+        button.addActionListener(e -> {
+            dispose();
+            new LoginFrame();
         });
 
         return button;

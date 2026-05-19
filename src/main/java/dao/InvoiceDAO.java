@@ -64,6 +64,7 @@ public class InvoiceDAO {
                     c.name AS client_name,
                     c.company_link,
                     i.amount,
+                    i.received_amount,
                     i.description,
                     i.due_date,
                     i.issue_date,
@@ -103,6 +104,7 @@ public class InvoiceDAO {
                     c.name AS client_name,
                     c.company_link,
                     i.amount,
+                    i.received_amount,
                     i.description,
                     i.due_date,
                     i.issue_date,
@@ -143,6 +145,7 @@ public class InvoiceDAO {
                     c.name AS client_name,
                     c.company_link,
                     i.amount,
+                    i.received_amount,
                     i.description,
                     i.due_date,
                     i.issue_date,
@@ -201,6 +204,7 @@ public class InvoiceDAO {
                     c.name AS client_name,
                     c.company_link,
                     i.amount,
+                    i.received_amount,
                     i.description,
                     i.due_date,
                     i.issue_date,
@@ -264,7 +268,7 @@ public class InvoiceDAO {
 
     public BigDecimal getTotalPaidByPaymentPeriod(LocalDate start, LocalDate end) {
         String sql = """
-                SELECT SUM(amount) AS total
+                SELECT SUM(COALESCE(received_amount, amount)) AS total
                 FROM invoice
                 WHERE payment_date BETWEEN ? AND ?
                   AND status = 'PAGO'
@@ -346,14 +350,41 @@ public class InvoiceDAO {
         return totals;
     }
 
+    public void update(Invoice invoice) {
+        String sql = """
+                UPDATE invoice
+                SET id_client = ?,
+                    amount = ?,
+                    description = ?,
+                    due_date = ?
+                WHERE id = ?
+                AND status NOT IN ('PAGO', 'CANCELADO')
+                """;
+
+        try (Connection conn = ConnectionFactory.getConnection();
+             PreparedStatement stmt = conn.prepareStatement(sql)) {
+
+            stmt.setInt(1, invoice.getClientId());
+            stmt.setBigDecimal(2, invoice.getAmount());
+            stmt.setString(3, invoice.getDescription());
+            stmt.setDate(4, Date.valueOf(invoice.getDueDate()));
+            stmt.setInt(5, invoice.getId());
+
+            stmt.executeUpdate();
+
+        } catch (SQLException e) {
+            throw new RuntimeException("Erro ao atualizar faturamento", e);
+        }
+    }
+
     public void markAsIssued(int id, LocalDate issueDate) {
         String sql = """
-            UPDATE invoice
-            SET status = 'FATURADO',
-                issue_date = ?
-            WHERE id = ?
-            AND status = 'PENDENTE'
-            """;
+                UPDATE invoice
+                SET status = 'FATURADO',
+                    issue_date = ?
+                WHERE id = ?
+                AND status = 'PENDENTE'
+                """;
 
         try (Connection conn = ConnectionFactory.getConnection();
              PreparedStatement stmt = conn.prepareStatement(sql)) {
@@ -368,11 +399,12 @@ public class InvoiceDAO {
         }
     }
 
-    public void markAsPaid(int id, LocalDate paymentDate) {
+    public void markAsPaid(int id, LocalDate paymentDate, BigDecimal receivedAmount) {
         String sql = """
                 UPDATE invoice
                 SET status = 'PAGO',
-                    payment_date = ?
+                    payment_date = ?,
+                    received_amount = ?
                 WHERE id = ?
                 AND status = 'FATURADO'
                 """;
@@ -381,7 +413,8 @@ public class InvoiceDAO {
              PreparedStatement stmt = conn.prepareStatement(sql)) {
 
             stmt.setDate(1, Date.valueOf(paymentDate));
-            stmt.setInt(2, id);
+            stmt.setBigDecimal(2, receivedAmount);
+            stmt.setInt(3, id);
 
             stmt.executeUpdate();
 
@@ -392,11 +425,11 @@ public class InvoiceDAO {
 
     public void cancelInvoice(int id) {
         String sql = """
-            UPDATE invoice
-            SET status = 'CANCELADO'
-            WHERE id = ?
-            AND status != 'PAGO'
-            """;
+                UPDATE invoice
+                SET status = 'CANCELADO'
+                WHERE id = ?
+                AND status != 'PAGO'
+                """;
 
         try (Connection conn = ConnectionFactory.getConnection();
              PreparedStatement stmt = conn.prepareStatement(sql)) {
@@ -436,6 +469,7 @@ public class InvoiceDAO {
         invoice.setId(rs.getInt("id"));
         invoice.setClientId(rs.getInt("id_client"));
         invoice.setAmount(rs.getBigDecimal("amount"));
+        invoice.setReceivedAmount(rs.getBigDecimal("received_amount"));
         invoice.setDescription(rs.getString("description"));
         invoice.setDueDate(rs.getDate("due_date").toLocalDate());
 
@@ -461,6 +495,7 @@ public class InvoiceDAO {
         invoiceView.setClientName(rs.getString("client_name"));
         invoiceView.setCompanyLink(rs.getString("company_link"));
         invoiceView.setAmount(rs.getBigDecimal("amount"));
+        invoiceView.setReceivedAmount(rs.getBigDecimal("received_amount"));
         invoiceView.setDescription(rs.getString("description"));
         invoiceView.setDueDate(rs.getDate("due_date").toLocalDate());
 

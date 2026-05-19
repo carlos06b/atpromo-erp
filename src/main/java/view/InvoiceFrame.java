@@ -3,6 +3,7 @@ package view;
 import controller.ClientController;
 import controller.InvoiceController;
 import model.Client;
+import model.Invoice;
 import model.InvoiceView;
 
 import javax.swing.*;
@@ -14,7 +15,6 @@ import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.text.NumberFormat;
 import java.time.LocalDate;
-import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.util.Locale;
@@ -48,9 +48,6 @@ public class InvoiceFrame extends JFrame {
     private JLabel lblCanceled;
 
     public InvoiceFrame() {
-        MONEY_FORMAT.setMinimumFractionDigits(2);
-        MONEY_FORMAT.setMaximumFractionDigits(2);
-
         setTitle("Sistema At Promo - Faturamento");
         setSize(1120, 800);
         setLocationRelativeTo(null);
@@ -87,7 +84,7 @@ public class InvoiceFrame extends JFrame {
         JLabel subtitle = new JLabel("Controle de cobranças pendentes, faturadas, recebidas e canceladas");
         subtitle.setForeground(new Color(210, 210, 210));
         subtitle.setFont(new Font("Segoe UI", Font.PLAIN, 15));
-        subtitle.setBounds(32, 55, 700, 25);
+        subtitle.setBounds(32, 55, 760, 25);
         header.add(subtitle);
 
         JPanel orangeLine = new JPanel();
@@ -173,15 +170,15 @@ public class InvoiceFrame extends JFrame {
         JLabel label = new JLabel(text);
         label.setFont(new Font("Segoe UI", Font.BOLD, 15));
         label.setForeground(BLACK);
-        label.setBounds(x, 25, 230, 30);
+        label.setBounds(x, 25, 240, 30);
         return label;
     }
 
     private void createTable(JPanel panel) {
         tableModel = new DefaultTableModel(
                 new Object[]{
-                        "ID", "Indústria", "Vínculo", "Valor", "Descrição",
-                        "Previsto", "Faturado em", "Recebido em", "Status"
+                        "ID", "Indústria", "Vínculo", "Faturado", "Recebido",
+                        "Descrição", "Previsto", "Faturado em", "Recebido em", "Status"
                 }, 0
         ) {
             @Override
@@ -210,7 +207,14 @@ public class InvoiceFrame extends JFrame {
                         table, value, isSelected, hasFocus, row, column
                 );
 
-                String status = table.getValueAt(row, 8).toString();
+                if (component instanceof JLabel label) {
+                    label.setBorder(BorderFactory.createEmptyBorder(0, 6, 0, 6));
+                    label.setHorizontalAlignment(
+                            column == 3 || column == 4 ? SwingConstants.RIGHT : SwingConstants.LEFT
+                    );
+                }
+
+                String status = table.getValueAt(row, 9).toString();
 
                 if (isSelected) {
                     component.setBackground(new Color(210, 230, 255));
@@ -244,39 +248,45 @@ public class InvoiceFrame extends JFrame {
         table.getColumnModel().getColumn(0).setMaxWidth(0);
         table.getColumnModel().getColumn(0).setWidth(0);
 
-        table.getColumnModel().getColumn(1).setPreferredWidth(240);
-        table.getColumnModel().getColumn(2).setPreferredWidth(70);
-        table.getColumnModel().getColumn(3).setPreferredWidth(90);
-        table.getColumnModel().getColumn(4).setPreferredWidth(210);
-        table.getColumnModel().getColumn(5).setPreferredWidth(100);
-        table.getColumnModel().getColumn(6).setPreferredWidth(110);
-        table.getColumnModel().getColumn(7).setPreferredWidth(100);
-        table.getColumnModel().getColumn(8).setPreferredWidth(100);
+        table.getColumnModel().getColumn(1).setPreferredWidth(180);
+        table.getColumnModel().getColumn(2).setPreferredWidth(65);
+        table.getColumnModel().getColumn(3).setPreferredWidth(105);
+        table.getColumnModel().getColumn(4).setPreferredWidth(105);
+        table.getColumnModel().getColumn(5).setPreferredWidth(190);
+        table.getColumnModel().getColumn(6).setPreferredWidth(90);
+        table.getColumnModel().getColumn(7).setPreferredWidth(105);
+        table.getColumnModel().getColumn(8).setPreferredWidth(105);
+        table.getColumnModel().getColumn(9).setPreferredWidth(90);
     }
 
     private void createActionButtons(JPanel panel) {
+        JButton btnEdit = createSecondaryButton("Editar");
+        btnEdit.setBounds(70, 655, 120, 38);
+        btnEdit.addActionListener(e -> openEditDialog());
+        panel.add(btnEdit);
+
         JButton btnCancel = createDangerButton("Cancelar");
-        btnCancel.setBounds(200, 655, 150, 38);
+        btnCancel.setBounds(200, 655, 120, 38);
         btnCancel.addActionListener(e -> cancelInvoice());
         panel.add(btnCancel);
 
         JButton btnIssue = createPrimaryButton("Faturar");
-        btnIssue.setBounds(360, 655, 150, 38);
+        btnIssue.setBounds(330, 655, 120, 38);
         btnIssue.addActionListener(e -> markAsIssued());
         panel.add(btnIssue);
 
         JButton btnPaid = createPrimaryButton("Receber");
-        btnPaid.setBounds(520, 655, 150, 38);
+        btnPaid.setBounds(460, 655, 120, 38);
         btnPaid.addActionListener(e -> markAsPaid());
         panel.add(btnPaid);
 
         JButton btnExcel = createPrimaryButton("Exportar Excel");
-        btnExcel.setBounds(680, 655, 180, 38);
+        btnExcel.setBounds(590, 655, 170, 38);
         btnExcel.addActionListener(e -> exportExcel());
         panel.add(btnExcel);
 
         JButton btnClose = createDarkButton("Fechar");
-        btnClose.setBounds(880, 655, 150, 38);
+        btnClose.setBounds(775, 655, 120, 38);
         btnClose.addActionListener(e -> dispose());
         panel.add(btnClose);
     }
@@ -302,7 +312,7 @@ public class InvoiceFrame extends JFrame {
         JPanel panel = new JPanel(new GridLayout(0, 1, 5, 5));
         panel.add(new JLabel("Indústria:"));
         panel.add(cbClient);
-        panel.add(new JLabel("Valor (ex: 1.234,56):"));
+        panel.add(new JLabel("Valor faturado:"));
         panel.add(txtAmount);
         panel.add(new JLabel("Descrição:"));
         panel.add(txtDescription);
@@ -341,6 +351,103 @@ public class InvoiceFrame extends JFrame {
             } catch (Exception e) {
                 JOptionPane.showMessageDialog(this, e.getMessage(), "Erro", JOptionPane.ERROR_MESSAGE);
             }
+        }
+    }
+
+    private void openEditDialog() {
+        int id = getSelectedInvoiceId();
+
+        if (id == -1) {
+            return;
+        }
+
+        try {
+            Invoice invoice = invoiceController.findById(id);
+
+            if ("PAGO".equals(invoice.getStatus()) || "CANCELADO".equals(invoice.getStatus())) {
+                JOptionPane.showMessageDialog(
+                        this,
+                        "Faturamentos pagos ou cancelados não podem ser editados.",
+                        "Atenção",
+                        JOptionPane.WARNING_MESSAGE
+                );
+                return;
+            }
+
+            List<Client> clients = clientController.listActiveClients();
+
+            if (clients.isEmpty()) {
+                JOptionPane.showMessageDialog(this, "Nenhuma indústria ativa cadastrada.");
+                return;
+            }
+
+            JComboBox<ClientComboItem> cbClient = new JComboBox<>();
+            ClientComboItem selectedItem = null;
+
+            for (Client client : clients) {
+                ClientComboItem item = new ClientComboItem(
+                        client.getId(),
+                        client.getName(),
+                        client.getCompanyLink()
+                );
+
+                cbClient.addItem(item);
+
+                if (client.getId() == invoice.getClientId()) {
+                    selectedItem = item;
+                }
+            }
+
+            if (selectedItem != null) {
+                cbClient.setSelectedItem(selectedItem);
+            }
+
+            JTextField txtAmount = new JTextField(moneyForInput(invoice.getAmount()));
+            JTextField txtDescription = new JTextField(formatField(invoice.getDescription()));
+            JTextField txtDueDate = new JTextField(formatDate(invoice.getDueDate()));
+
+            JPanel panel = new JPanel(new GridLayout(0, 1, 5, 5));
+            panel.add(new JLabel("Indústria:"));
+            panel.add(cbClient);
+            panel.add(new JLabel("Valor faturado:"));
+            panel.add(txtAmount);
+            panel.add(new JLabel("Descrição:"));
+            panel.add(txtDescription);
+            panel.add(new JLabel("Data prevista (dd/MM/aaaa):"));
+            panel.add(txtDueDate);
+
+            int result = JOptionPane.showConfirmDialog(
+                    this,
+                    panel,
+                    "Editar Faturamento",
+                    JOptionPane.OK_CANCEL_OPTION,
+                    JOptionPane.PLAIN_MESSAGE
+            );
+
+            if (result == JOptionPane.OK_OPTION) {
+                ClientComboItem selectedClient = (ClientComboItem) cbClient.getSelectedItem();
+
+                if (selectedClient == null) {
+                    throw new RuntimeException("Selecione uma indústria.");
+                }
+
+                BigDecimal amount = parseMoney(txtAmount.getText());
+                LocalDate dueDate = parseBrazilianDate(txtDueDate.getText());
+
+                invoiceController.updateInvoice(
+                        id,
+                        selectedClient.getId(),
+                        amount,
+                        txtDescription.getText(),
+                        dueDate
+                );
+
+                JOptionPane.showMessageDialog(this, "Faturamento atualizado com sucesso.");
+                loadInvoices();
+            }
+
+        } catch (Exception e) {
+            JOptionPane.showMessageDialog(this, e.getMessage(), "Erro", JOptionPane.ERROR_MESSAGE);
         }
     }
 
@@ -386,21 +493,25 @@ public class InvoiceFrame extends JFrame {
             return;
         }
 
-        LocalDate issueDate = askDate(
-                "Data de faturamento",
-                "Informe a data de faturamento:",
-                LocalDate.now()
+        String issueDateText = JOptionPane.showInputDialog(
+                this,
+                "Informe a data de faturamento (dd/MM/aaaa):",
+                LocalDate.now().format(BR_FORMAT)
         );
 
-        if (issueDate == null) {
+        if (issueDateText == null || issueDateText.trim().isEmpty()) {
             return;
         }
 
         try {
+            LocalDate issueDate = parseBrazilianDate(issueDateText.trim());
+
             invoiceController.markAsIssued(id, issueDate);
+
             JOptionPane.showMessageDialog(this, "Faturamento marcado como faturado.");
             loadInvoices();
-        } catch (RuntimeException e) {
+
+        } catch (Exception e) {
             JOptionPane.showMessageDialog(this, e.getMessage(), "Erro", JOptionPane.ERROR_MESSAGE);
         }
     }
@@ -412,20 +523,37 @@ public class InvoiceFrame extends JFrame {
             return;
         }
 
-        LocalDate paymentDate = askDate(
-                "Data de recebimento",
-                "Informe a data de recebimento:",
-                LocalDate.now()
-        );
-
-        if (paymentDate == null) {
-            return;
-        }
-
         try {
-            invoiceController.markAsPaid(id, paymentDate);
-            JOptionPane.showMessageDialog(this, "Faturamento marcado como recebido.");
-            loadInvoices();
+            Invoice invoice = invoiceController.findById(id);
+
+            JTextField txtPaymentDate = new JTextField(LocalDate.now().format(BR_FORMAT));
+            JTextField txtReceivedAmount = new JTextField(
+                    moneyForInput(invoice.getReceivedAmount() != null ? invoice.getReceivedAmount() : invoice.getAmount())
+            );
+
+            JPanel panel = new JPanel(new GridLayout(0, 1, 5, 5));
+            panel.add(new JLabel("Data de recebimento (dd/MM/aaaa):"));
+            panel.add(txtPaymentDate);
+            panel.add(new JLabel("Valor recebido:"));
+            panel.add(txtReceivedAmount);
+
+            int result = JOptionPane.showConfirmDialog(
+                    this,
+                    panel,
+                    "Marcar como recebido",
+                    JOptionPane.OK_CANCEL_OPTION,
+                    JOptionPane.PLAIN_MESSAGE
+            );
+
+            if (result == JOptionPane.OK_OPTION) {
+                LocalDate paymentDate = parseBrazilianDate(txtPaymentDate.getText());
+                BigDecimal receivedAmount = parseMoney(txtReceivedAmount.getText());
+
+                invoiceController.markAsPaid(id, paymentDate, receivedAmount);
+
+                JOptionPane.showMessageDialog(this, "Faturamento marcado como recebido.");
+                loadInvoices();
+            }
 
         } catch (Exception e) {
             JOptionPane.showMessageDialog(this, e.getMessage(), "Erro", JOptionPane.ERROR_MESSAGE);
@@ -477,6 +605,7 @@ public class InvoiceFrame extends JFrame {
                     invoice.getClientName(),
                     invoice.getCompanyLink(),
                     formatMoney(invoice.getAmount()),
+                    formatReceivedAmount(invoice),
                     invoice.getDescription(),
                     formatDate(invoice.getDueDate()),
                     formatDate(invoice.getIssueDate()),
@@ -502,7 +631,7 @@ public class InvoiceFrame extends JFrame {
             switch (invoice.getStatus()) {
                 case "PENDENTE" -> pending = pending.add(invoice.getAmount());
                 case "FATURADO" -> issued = issued.add(invoice.getAmount());
-                case "PAGO" -> paid = paid.add(invoice.getAmount());
+                case "PAGO" -> paid = paid.add(getReceivedAmount(invoice));
                 case "CANCELADO" -> canceledCount++;
             }
         }
@@ -513,79 +642,77 @@ public class InvoiceFrame extends JFrame {
         lblCanceled.setText("Cancelado: " + canceledCount + " registros");
     }
 
-    private String formatMoney(BigDecimal value) {
-        if (value == null) {
-            return MONEY_FORMAT.format(BigDecimal.ZERO);
+    private BigDecimal getReceivedAmount(InvoiceView invoice) {
+        if (invoice.getReceivedAmount() != null) {
+            return invoice.getReceivedAmount();
         }
 
-        return MONEY_FORMAT.format(value.setScale(2, RoundingMode.HALF_UP));
+        return invoice.getAmount() != null ? invoice.getAmount() : BigDecimal.ZERO;
+    }
+
+    private String formatReceivedAmount(InvoiceView invoice) {
+        if (!"PAGO".equals(invoice.getStatus())) {
+            return "-";
+        }
+
+        return formatMoney(getReceivedAmount(invoice));
+    }
+
+    private String formatMoney(BigDecimal value) {
+        if (value == null) {
+            return "R$ 0,00";
+        }
+
+        return MONEY_FORMAT.format(value.setScale(2, RoundingMode.HALF_UP))
+                .replace('\u00A0', ' ');
+    }
+
+    private String moneyForInput(BigDecimal value) {
+        if (value == null) {
+            return "";
+        }
+
+        return formatMoney(value)
+                .replace("R$", "")
+                .trim();
     }
 
     private BigDecimal parseMoney(String value) {
         if (value == null || value.trim().isEmpty()) {
-            throw new RuntimeException("Valor inválido. Use o formato 1.234,56.");
+            throw new RuntimeException("Informe um valor válido.");
         }
 
-        String cleaned = value.trim()
+        String cleanValue = value
                 .replace("R$", "")
                 .replace(" ", "")
-                .replace("\u00A0", "");
+                .replace("\u00A0", "")
+                .trim();
 
-        if (cleaned.contains(",")) {
-            cleaned = cleaned.replace(".", "").replace(",", ".");
-        } else if (cleaned.contains(".")) {
-            int dotCount = cleaned.length() - cleaned.replace(".", "").length();
-            int lastDot = cleaned.lastIndexOf(".");
-            int decimals = cleaned.length() - lastDot - 1;
+        int lastComma = cleanValue.lastIndexOf(',');
+        int lastDot = cleanValue.lastIndexOf('.');
 
-            if (dotCount > 1 || decimals != 2) {
-                cleaned = cleaned.replace(".", "");
+        if (lastComma >= 0 && lastDot >= 0) {
+            if (lastComma > lastDot) {
+                cleanValue = cleanValue.replace(".", "").replace(",", ".");
+            } else {
+                cleanValue = cleanValue.replace(",", "");
+            }
+        } else if (lastComma >= 0) {
+            cleanValue = cleanValue.replace(".", "").replace(",", ".");
+        } else if (lastDot >= 0) {
+            int firstDot = cleanValue.indexOf('.');
+            int digitsAfterDot = cleanValue.length() - lastDot - 1;
+
+            if (firstDot != lastDot || digitsAfterDot > 2) {
+                cleanValue = cleanValue.replace(".", "");
             }
         }
 
         try {
-            BigDecimal amount = new BigDecimal(cleaned).setScale(2, RoundingMode.HALF_UP);
-
-            if (amount.compareTo(BigDecimal.ZERO) <= 0) {
-                throw new RuntimeException("O valor do faturamento deve ser maior que zero.");
-            }
-
-            return amount;
-
+            return new BigDecimal(cleanValue).setScale(2, RoundingMode.HALF_UP);
         } catch (NumberFormatException e) {
-            throw new RuntimeException("Valor inválido. Use o formato 1.234,56.");
+            throw new RuntimeException("Valor inválido. Use o formato 130000,00 ou 130.000,00.");
         }
-    }
-
-    private LocalDate askDate(String title, String labelText, LocalDate initialDate) {
-        JSpinner dateSpinner = new JSpinner(new SpinnerDateModel());
-        dateSpinner.setEditor(new JSpinner.DateEditor(dateSpinner, "dd/MM/yyyy"));
-        dateSpinner.setFont(new Font("Segoe UI", Font.PLAIN, 13));
-        dateSpinner.setValue(java.util.Date.from(
-                initialDate.atStartOfDay(ZoneId.systemDefault()).toInstant()
-        ));
-
-        JPanel panel = new JPanel(new BorderLayout(0, 8));
-        panel.add(new JLabel(labelText), BorderLayout.NORTH);
-        panel.add(dateSpinner, BorderLayout.CENTER);
-
-        int result = JOptionPane.showConfirmDialog(
-                this,
-                panel,
-                title,
-                JOptionPane.OK_CANCEL_OPTION,
-                JOptionPane.PLAIN_MESSAGE
-        );
-
-        if (result != JOptionPane.OK_OPTION) {
-            return null;
-        }
-
-        java.util.Date selectedDate = (java.util.Date) dateSpinner.getValue();
-
-        return selectedDate.toInstant()
-                .atZone(ZoneId.systemDefault())
-                .toLocalDate();
     }
 
     private String formatDate(LocalDate date) {
@@ -594,6 +721,14 @@ public class InvoiceFrame extends JFrame {
         }
 
         return date.format(BR_FORMAT);
+    }
+
+    private String formatField(String value) {
+        if (value == null || value.isBlank()) {
+            return "";
+        }
+
+        return value;
     }
 
     private LocalDate parseBrazilianDate(String date) {
