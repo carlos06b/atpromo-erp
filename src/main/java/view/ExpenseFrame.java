@@ -9,6 +9,8 @@ import model.VariableExpense;
 import org.jdesktop.swingx.JXDatePicker;
 import java.util.Date;
 import java.time.ZoneId;
+import java.text.NumberFormat;
+import java.util.Locale;
 
 import javax.swing.*;
 import javax.swing.table.DefaultTableModel;
@@ -26,6 +28,8 @@ public class ExpenseFrame extends JFrame {
     private final VariableExpenseDAO variableExpenseDAO = new VariableExpenseDAO();
 
     private final DateTimeFormatter brFormatter = DateTimeFormatter.ofPattern("dd/MM/yyyy");
+    private final Locale brLocale = new Locale("pt", "BR");
+    private final NumberFormat moneyFormatter = NumberFormat.getCurrencyInstance(brLocale);
 
     private final Color ORANGE = new Color(255, 102, 0);
     private final Color BLACK = new Color(18, 18, 18);
@@ -408,10 +412,9 @@ public class ExpenseFrame extends JFrame {
         int modelRow = fixedExpenseTable.convertRowIndexToModel(row);
 
         String currentName = fixedExpenseTable.getModel().getValueAt(modelRow, 1).toString();
-        String currentAmount = fixedExpenseTable.getModel().getValueAt(modelRow, 2).toString()
-                .replace("R$ ", "")
-                .replace(".", "")
-                .replace(",", ".");
+        String currentAmount = moneyForInput(
+                fixedExpenseTable.getModel().getValueAt(modelRow, 2)
+        );
         String currentDueDate = fixedExpenseTable.getModel().getValueAt(modelRow, 3).toString();
 
         JTextField nameField = createTextField(currentName);
@@ -655,12 +658,9 @@ public class ExpenseFrame extends JFrame {
         int row = fixedExpenseHistoryTable.getSelectedRow();
         int modelRow = fixedExpenseHistoryTable.convertRowIndexToModel(row);
 
-        String currentAmount = fixedExpenseHistoryTable.getModel()
-                .getValueAt(modelRow, 3)
-                .toString()
-                .replace("R$ ", "")
-                .replace(".", "")
-                .replace(",", ".");
+        String currentAmount = moneyForInput(
+                fixedExpenseHistoryTable.getModel().getValueAt(modelRow, 3)
+        );
 
         String input = JOptionPane.showInputDialog(
                 this,
@@ -948,8 +948,47 @@ public class ExpenseFrame extends JFrame {
             throw new IllegalArgumentException("Informe um valor.");
         }
 
-        String normalized = value.trim().replace(".", "").replace(",", ".");
-        return new BigDecimal(normalized);
+        String normalized = value.trim()
+                .replace("R$", "")
+                .replace(" ", "")
+                .replace("\u00A0", "");
+
+        if (normalized.contains(",") && normalized.contains(".")) {
+            if (normalized.lastIndexOf(",") > normalized.lastIndexOf(".")) {
+                normalized = normalized.replace(".", "").replace(",", ".");
+            } else {
+                normalized = normalized.replace(",", "");
+            }
+        } else if (normalized.contains(",")) {
+            normalized = normalized.replace(".", "").replace(",", ".");
+        } else if (normalized.contains(".")) {
+            int dotCount = normalized.length() - normalized.replace(".", "").length();
+            int lastDot = normalized.lastIndexOf(".");
+            int decimals = normalized.length() - lastDot - 1;
+
+            if (dotCount > 1 || decimals == 3) {
+                normalized = normalized.replace(".", "");
+            }
+        }
+
+        BigDecimal amount = new BigDecimal(normalized).setScale(2, RoundingMode.HALF_UP);
+
+        if (amount.compareTo(BigDecimal.ZERO) <= 0) {
+            throw new IllegalArgumentException("O valor precisa ser maior que zero.");
+        }
+
+        return amount;
+    }
+
+    private String moneyForInput(Object value) {
+        if (value == null) {
+            return "";
+        }
+
+        return value.toString()
+                .replace("R$", "")
+                .replace("\u00A0", " ")
+                .trim();
     }
 
     private LocalDate parseDate(String value) {
@@ -970,12 +1009,10 @@ public class ExpenseFrame extends JFrame {
 
     private String formatMoney(BigDecimal value) {
         if (value == null) {
-            return "R$ 0,00";
+            return moneyFormatter.format(BigDecimal.ZERO);
         }
 
-        return "R$ " + value.setScale(2, RoundingMode.HALF_UP)
-                .toString()
-                .replace(".", ",");
+        return moneyFormatter.format(value.setScale(2, RoundingMode.HALF_UP));
     }
 
     private void fillCurrentMonthFields() {

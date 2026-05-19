@@ -9,11 +9,14 @@ import javax.swing.*;
 import javax.swing.table.DefaultTableModel;
 import java.awt.*;
 import java.math.BigDecimal;
+import java.text.NumberFormat;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
+import java.util.Locale;
+import java.math.RoundingMode;
 
 public class RequestFrame extends JFrame {
 
@@ -32,13 +35,16 @@ public class RequestFrame extends JFrame {
     private final Color TEXT_GRAY = new Color(90, 90, 90);
     private final Color RED = new Color(190, 40, 40);
 
+    private final Locale brLocale = new Locale("pt", "BR");
+    private final NumberFormat moneyFormatter = NumberFormat.getCurrencyInstance(brLocale);
+
     public RequestFrame(User loggedUser) {
         this.loggedUser = loggedUser;
         this.requestController = new RequestController();
         this.promoterController = new PromoterController();
 
         setTitle("Sistema At Promo - Solicitações");
-        setSize(1250, 620);
+        setSize(1250, 650);
         setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
         setLocationRelativeTo(null);
         setResizable(false);
@@ -281,7 +287,7 @@ public class RequestFrame extends JFrame {
                 "Buscar promotor pelo nome:", searchField,
                 "Resultados:", listScroll,
                 "Tipo:", typeBox,
-                "Valor:", amountField,
+                "Valor (ex: 1.234,56):", amountField,
                 "Mensagem / PIX / Dados para pagamento:", new JScrollPane(messageArea)
         };
 
@@ -301,7 +307,7 @@ public class RequestFrame extends JFrame {
                     return;
                 }
 
-                BigDecimal amount = new BigDecimal(amountField.getText().trim().replace(",", "."));
+                BigDecimal amount = parseMoney(amountField.getText());
                 String selectedType = typeBox.getSelectedItem().toString();
                 String type = convertTypeToDatabase(selectedType);
                 String message = messageArea.getText().trim();
@@ -329,7 +335,7 @@ public class RequestFrame extends JFrame {
                 loadPending();
 
             } catch (Exception e) {
-                showError("Dados inválidos.");
+                showError(e.getMessage());
             }
         }
     }
@@ -580,7 +586,7 @@ public class RequestFrame extends JFrame {
             int id = Integer.parseInt(parts[0].trim());
             String promoter = parts[1].replace("Promotor:", "").trim();
             String type = convertTypeToView(parts[2].trim());
-            String amount = parts[3].trim();
+            String amount = formatMoney(parseMoney(parts[3].trim()));
             String fullMessage = parts[4].trim();
             String shortMessage = shortenText(fullMessage, 45);
             String status = parts[5].trim();
@@ -700,6 +706,51 @@ public class RequestFrame extends JFrame {
         } catch (Exception e) {
             return dateTime;
         }
+    }
+
+    private BigDecimal parseMoney(String value) {
+        if (value == null || value.trim().isEmpty()) {
+            throw new IllegalArgumentException("Informe um valor.");
+        }
+
+        String normalized = value.trim()
+                .replace("R$", "")
+                .replace(" ", "")
+                .replace("\u00A0", "");
+
+        if (normalized.contains(",") && normalized.contains(".")) {
+            if (normalized.lastIndexOf(",") > normalized.lastIndexOf(".")) {
+                normalized = normalized.replace(".", "").replace(",", ".");
+            } else {
+                normalized = normalized.replace(",", "");
+            }
+        } else if (normalized.contains(",")) {
+            normalized = normalized.replace(".", "").replace(",", ".");
+        } else if (normalized.contains(".")) {
+            int dotCount = normalized.length() - normalized.replace(".", "").length();
+            int lastDot = normalized.lastIndexOf(".");
+            int decimals = normalized.length() - lastDot - 1;
+
+            if (dotCount > 1 || decimals == 3) {
+                normalized = normalized.replace(".", "");
+            }
+        }
+
+        BigDecimal amount = new BigDecimal(normalized).setScale(2, RoundingMode.HALF_UP);
+
+        if (amount.compareTo(BigDecimal.ZERO) <= 0) {
+            throw new IllegalArgumentException("O valor precisa ser maior que zero.");
+        }
+
+        return amount;
+    }
+
+    private String formatMoney(BigDecimal value) {
+        if (value == null) {
+            return moneyFormatter.format(BigDecimal.ZERO);
+        }
+
+        return moneyFormatter.format(value.setScale(2, RoundingMode.HALF_UP));
     }
 
     private static class PromoterItem {

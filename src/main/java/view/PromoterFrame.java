@@ -9,6 +9,9 @@ import java.awt.*;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.List;
+import java.math.RoundingMode;
+import java.text.NumberFormat;
+import java.util.Locale;
 
 public class PromoterFrame extends JFrame {
 
@@ -26,11 +29,14 @@ public class PromoterFrame extends JFrame {
     private final Color TEXT_GRAY = new Color(90, 90, 90);
     private final Color RED = new Color(190, 40, 40);
 
+    private final Locale brLocale = new Locale("pt", "BR");
+    private final NumberFormat moneyFormatter = NumberFormat.getCurrencyInstance(brLocale);
+
     public PromoterFrame() {
         promoterController = new PromoterController();
 
         setTitle("Sistema At Promo - Promotores");
-        setSize(1120, 680);
+        setSize(1120, 700);
         setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
         setLocationRelativeTo(null);
         setResizable(false);
@@ -337,7 +343,7 @@ public class PromoterFrame extends JFrame {
         JFormattedTextField phone = createPhoneField();
         phone.setText(formatPhone(p.getPhone()));
         JTextField pix = createTextField(p.getPix());
-        JTextField salary = createTextField(p.getSalary().toString());
+        JTextField salary = createTextField(moneyForInput(p.getSalary()));
 
         JComboBox<String> pixType = new JComboBox<>(new String[]{
                 "TELEFONE", "EMAIL", "CPF", "CNPJ", "ALEATORIA"
@@ -378,7 +384,7 @@ public class PromoterFrame extends JFrame {
                         cleanPhone(phone.getText()),
                         pix.getText().trim(),
                         pixType.getSelectedItem().toString(),
-                        new BigDecimal(salary.getText().trim().replace(",", ".")),
+                        parseMoney(salary.getText()),
                         type.getSelectedItem().toString()
                 );
 
@@ -386,7 +392,7 @@ public class PromoterFrame extends JFrame {
                 loadPromoters();
 
             } catch (Exception e) {
-                showError("Dados inválidos.");
+                showError(e.getMessage());
             }
         }
     }
@@ -451,7 +457,7 @@ public class PromoterFrame extends JFrame {
                         pix.getText().trim(),
                         pixType.getSelectedItem().toString(),
                         dateBirth,
-                        new BigDecimal(salary.getText().trim().replace(",", ".")),
+                        parseMoney(salary.getText()),
                         type.getSelectedItem().toString()
                 );
 
@@ -459,7 +465,7 @@ public class PromoterFrame extends JFrame {
                 loadPromoters();
 
             } catch (Exception e) {
-                showError("Dados inválidos.");
+                showError(e.getMessage());
             }
         }
     }
@@ -623,9 +629,56 @@ public class PromoterFrame extends JFrame {
     }
 
     private String formatMoney(BigDecimal value) {
-        if (value == null) return "R$ 0,00";
+        if (value == null) {
+            return moneyFormatter.format(BigDecimal.ZERO);
+        }
 
-        return "R$ " + value.setScale(2, java.math.RoundingMode.HALF_UP)
+        return moneyFormatter.format(value.setScale(2, RoundingMode.HALF_UP));
+    }
+
+    private BigDecimal parseMoney(String value) {
+        if (value == null || value.trim().isEmpty()) {
+            throw new IllegalArgumentException("Informe o salário.");
+        }
+
+        String normalized = value.trim()
+                .replace("R$", "")
+                .replace(" ", "")
+                .replace("\u00A0", "");
+
+        if (normalized.contains(",") && normalized.contains(".")) {
+            if (normalized.lastIndexOf(",") > normalized.lastIndexOf(".")) {
+                normalized = normalized.replace(".", "").replace(",", ".");
+            } else {
+                normalized = normalized.replace(",", "");
+            }
+        } else if (normalized.contains(",")) {
+            normalized = normalized.replace(".", "").replace(",", ".");
+        } else if (normalized.contains(".")) {
+            int dotCount = normalized.length() - normalized.replace(".", "").length();
+            int lastDot = normalized.lastIndexOf(".");
+            int decimals = normalized.length() - lastDot - 1;
+
+            if (dotCount > 1 || decimals == 3) {
+                normalized = normalized.replace(".", "");
+            }
+        }
+
+        BigDecimal amount = new BigDecimal(normalized).setScale(2, RoundingMode.HALF_UP);
+
+        if (amount.compareTo(BigDecimal.ZERO) <= 0) {
+            throw new IllegalArgumentException("O salário precisa ser maior que zero.");
+        }
+
+        return amount;
+    }
+
+    private String moneyForInput(BigDecimal value) {
+        if (value == null) {
+            return "";
+        }
+
+        return value.setScale(2, RoundingMode.HALF_UP)
                 .toString()
                 .replace(".", ",");
     }

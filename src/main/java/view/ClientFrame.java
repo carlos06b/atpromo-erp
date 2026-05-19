@@ -160,6 +160,12 @@ public class ClientFrame extends JFrame {
     }
 
     private void createActionButtons(JPanel panel) {
+
+        JButton btnEdit = createSecondaryButton("Editar");
+        btnEdit.setBounds(225, 525, 100, 36);
+        btnEdit.addActionListener(e -> openEditDialog());
+        panel.add(btnEdit);
+
         JButton btnDetails = createSecondaryButton("Ver Detalhes");
         btnDetails.setBounds(335, 525, 125, 36);
         btnDetails.addActionListener(e -> showClientDetails());
@@ -294,6 +300,77 @@ public class ClientFrame extends JFrame {
             clientController.deactivateClient(id);
             loadClients();
         }
+    }
+
+    private void openEditDialog() {
+        int id = getSelectedClientId();
+
+        if (id == -1) {
+            return;
+        }
+
+        try {
+            Client client = clientController.findById(id);
+
+            JTextField txtName = new JTextField(formatField(client.getName()));
+            JTextField txtCnpj = new JTextField(formatField(client.getCnpj()));
+            JTextField txtPhone = new JTextField(formatField(client.getPhone()));
+            JTextField txtEmail = new JTextField(formatField(client.getEmail()));
+
+            JComboBox<String> cbCompanyLink = new JComboBox<>(new String[]{"AT", "TEJO"});
+            cbCompanyLink.setSelectedItem(client.getCompanyLink());
+
+            JComboBox<String> cbStatus = new JComboBox<>(new String[]{"Ativo", "Inativo"});
+            cbStatus.setSelectedItem(client.isActive() ? "Ativo" : "Inativo");
+
+            JPanel panel = new JPanel(new GridLayout(0, 1, 5, 5));
+            panel.add(new JLabel("Nome da indústria:"));
+            panel.add(txtName);
+            panel.add(new JLabel("CNPJ:"));
+            panel.add(txtCnpj);
+            panel.add(new JLabel("Telefone:"));
+            panel.add(txtPhone);
+            panel.add(new JLabel("Email:"));
+            panel.add(txtEmail);
+            panel.add(new JLabel("Vínculo:"));
+            panel.add(cbCompanyLink);
+            panel.add(new JLabel("Status:"));
+            panel.add(cbStatus);
+
+            int result = JOptionPane.showConfirmDialog(
+                    this,
+                    panel,
+                    "Editar Indústria",
+                    JOptionPane.OK_CANCEL_OPTION,
+                    JOptionPane.PLAIN_MESSAGE
+            );
+
+            if (result == JOptionPane.OK_OPTION) {
+                clientController.updateClient(
+                        id,
+                        txtName.getText(),
+                        txtCnpj.getText(),
+                        txtPhone.getText(),
+                        txtEmail.getText(),
+                        cbCompanyLink.getSelectedItem().toString(),
+                        cbStatus.getSelectedItem().toString().equals("Ativo")
+                );
+
+                JOptionPane.showMessageDialog(this, "Indústria atualizada com sucesso.");
+                loadClients();
+            }
+
+        } catch (RuntimeException e) {
+            JOptionPane.showMessageDialog(this, e.getMessage(), "Erro", JOptionPane.ERROR_MESSAGE);
+        }
+    }
+
+    private String formatField(String value) {
+        if (value == null) {
+            return "";
+        }
+
+        return value;
     }
 
     private void showClientDetails() {

@@ -59,9 +59,13 @@ public class ClientController {
         return clientDAO.searchByName(name.trim());
     }
 
-    public void updateClient(int id, String name, String cnpj, String phone, boolean active) {
+    public void updateClient(int id, String name, String cnpj, String phone, String email, String companyLink, boolean active) {
         if (name == null || name.trim().isEmpty()) {
             throw new RuntimeException("O nome da indústria é obrigatório.");
+        }
+
+        if (companyLink == null || companyLink.trim().isEmpty()) {
+            throw new RuntimeException("Selecione o vínculo da indústria.");
         }
 
         Client client = new Client();
@@ -69,6 +73,8 @@ public class ClientController {
         client.setName(name.trim());
         client.setCnpj(formatNullable(cnpj));
         client.setPhone(formatNullable(phone));
+        client.setEmail(formatNullable(email));
+        client.setCompanyLink(companyLink);
         client.setActive(active);
 
         clientDAO.update(client);
