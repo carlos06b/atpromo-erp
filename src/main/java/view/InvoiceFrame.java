@@ -754,22 +754,15 @@ public class InvoiceFrame extends JFrame {
                 return;
             }
 
-            JFileChooser chooser = new JFileChooser();
-            chooser.setSelectedFile(new java.io.File("faturamento.xlsx"));
+            String path = util.FileSaveDialog.chooseXlsxPath(this, "faturamento.xlsx");
 
-            int option = chooser.showSaveDialog(this);
-
-            if (option == JFileChooser.APPROVE_OPTION) {
-                String path = chooser.getSelectedFile().getAbsolutePath();
-
-                if (!path.toLowerCase().endsWith(".xlsx")) {
-                    path += ".xlsx";
-                }
-
-                util.ExcelGenerator.generateInvoices(invoices, path);
-
-                JOptionPane.showMessageDialog(this, "Excel gerado com sucesso!");
+            if (path == null) {
+                return;
             }
+
+            util.ExcelGenerator.generateInvoices(invoices, path);
+
+            JOptionPane.showMessageDialog(this, "Excel gerado com sucesso!");
 
         } catch (Exception e) {
             JOptionPane.showMessageDialog(this, e.getMessage(), "Erro", JOptionPane.ERROR_MESSAGE);

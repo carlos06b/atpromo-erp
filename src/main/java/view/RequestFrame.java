@@ -498,7 +498,6 @@ public class RequestFrame extends JFrame {
         panel.add(item);
     }
 
-    // Exportar Excel
     private void exportPendingRequests() {
         List<String> pendingRequests = requestController.getPendingWithPromoterName();
 
@@ -507,22 +506,15 @@ public class RequestFrame extends JFrame {
             return;
         }
 
-        JFileChooser chooser = new JFileChooser();
-        chooser.setSelectedFile(new java.io.File("solicitacoes_pendentes.xlsx"));
+        String path = util.FileSaveDialog.chooseXlsxPath(this, "solicitacoes_pendentes.xlsx");
 
-        int option = chooser.showSaveDialog(this);
-
-        if (option == JFileChooser.APPROVE_OPTION) {
-            String path = chooser.getSelectedFile().getAbsolutePath();
-
-            if (!path.toLowerCase().endsWith(".xlsx")) {
-                path += ".xlsx";
-            }
-
-            util.ExcelGenerator.generatePendingRequests(pendingRequests, path);
-
-            showSuccess("Relatório de solicitações pendentes exportado com sucesso!");
+        if (path == null) {
+            return;
         }
+
+        util.ExcelGenerator.generatePendingRequests(pendingRequests, path);
+
+        showSuccess("Relatório de solicitações pendentes exportado com sucesso!");
     }
 
     private void exportPixBatch() {
@@ -553,22 +545,15 @@ public class RequestFrame extends JFrame {
             return;
         }
 
-        JFileChooser chooser = new JFileChooser();
-        chooser.setSelectedFile(new java.io.File("pix_lote_solicitacoes.xlsx"));
+        String path = util.FileSaveDialog.chooseXlsxPath(this, "pix_lote_solicitacoes.xlsx");
 
-        int option = chooser.showSaveDialog(this);
-
-        if (option == JFileChooser.APPROVE_OPTION) {
-            String path = chooser.getSelectedFile().getAbsolutePath();
-
-            if (!path.toLowerCase().endsWith(".xlsx")) {
-                path += ".xlsx";
-            }
-
-            util.ExcelGenerator.generatePixBatch(payments, path);
-
-            showSuccess("Pix Lote exportado com sucesso!");
+        if (path == null) {
+            return;
         }
+
+        util.ExcelGenerator.generatePixBatch(payments, path);
+
+        showSuccess("Pix Lote exportado com sucesso!");
     }
 
     private void fillTable(List<String> lines) {

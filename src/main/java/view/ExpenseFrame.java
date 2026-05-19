@@ -235,12 +235,16 @@ public class ExpenseFrame extends JFrame {
         btnMarkPaid.setBounds(580, 70, 125, 38);
         filterPanel.add(btnMarkPaid);
 
-        JButton btnEditAmount = createDarkButton("Editar Valor");
+        JButton btnEditAmount = createDarkButton("Editar");
         btnEditAmount.setBounds(715, 70, 125, 38);
         filterPanel.add(btnEditAmount);
 
+        JButton btnReopen = createDarkButton("Reabrir");
+        btnReopen.setBounds(850, 70, 95, 38);
+        filterPanel.add(btnReopen);
+
         JButton btnCancel = createDangerButton("Cancelar");
-        btnCancel.setBounds(850, 70, 115, 38);
+        btnCancel.setBounds(955, 70, 115, 38);
         filterPanel.add(btnCancel);
 
         fixedExpenseHistoryTable = createStyledTable();
@@ -253,6 +257,7 @@ public class ExpenseFrame extends JFrame {
         btnSearch.addActionListener(e -> loadFixedExpenseHistoryByPeriod());
         btnMarkPaid.addActionListener(e -> markFixedExpenseHistoryAsPaid());
         btnEditAmount.addActionListener(e -> editFixedExpenseHistoryAmount());
+        btnReopen.addActionListener(e -> reopenFixedExpenseHistory());
         btnCancel.addActionListener(e -> cancelFixedExpenseHistory());
 
         fillCurrentMonthFields();
@@ -658,31 +663,93 @@ public class ExpenseFrame extends JFrame {
         int row = fixedExpenseHistoryTable.getSelectedRow();
         int modelRow = fixedExpenseHistoryTable.convertRowIndexToModel(row);
 
-        String currentAmount = moneyForInput(
-                fixedExpenseHistoryTable.getModel().getValueAt(modelRow, 3)
-        );
+        String currentAmount = fixedExpenseHistoryTable.getModel()
+                .getValueAt(modelRow, 3)
+                .toString()
+                .replace("R$ ", "")
+                .trim();
 
-        String input = JOptionPane.showInputDialog(
-                this,
-                "Informe o novo valor:",
-                currentAmount
-        );
+        String currentDueDate = fixedExpenseHistoryTable.getModel()
+                .getValueAt(modelRow, 4)
+                .toString();
 
-        if (input == null || input.isBlank()) {
+        String currentStatus = fixedExpenseHistoryTable.getModel()
+                .getValueAt(modelRow, 5)
+                .toString();
+
+        if (!"PENDENTE".equalsIgnoreCase(currentStatus)) {
+            showError("Somente despesas mensais pendentes podem ser editadas.");
             return;
         }
 
-        try {
-            BigDecimal newAmount = parseMoney(input);
+        JTextField amountField = createTextField(currentAmount);
+        JTextField dueDateField = createTextField(currentDueDate);
 
-            fixedExpenseHistoryDAO.updateAmount(id, newAmount);
+        Object[] fields = {
+                "Valor:", amountField,
+                "Vencimento (dd/MM/yyyy):", dueDateField
+        };
 
-            loadFixedExpenseHistoryByPeriod();
+        int option = JOptionPane.showConfirmDialog(
+                this,
+                fields,
+                "Editar Despesa Fixa Mensal",
+                JOptionPane.OK_CANCEL_OPTION
+        );
 
-            showSuccess("Valor da despesa mensal atualizado com sucesso!");
+        if (option == JOptionPane.OK_OPTION) {
+            try {
+                BigDecimal newAmount = parseMoney(amountField.getText());
+                LocalDate newDueDate = parseDate(dueDateField.getText());
 
-        } catch (Exception e) {
-            showError("Valor inválido.");
+                fixedExpenseHistoryDAO.updateAmountAndDueDate(id, newAmount, newDueDate);
+
+                loadFixedExpenseHistoryByPeriod();
+
+                showSuccess("Despesa fixa mensal atualizada com sucesso!");
+
+            } catch (Exception e) {
+                showError(e.getMessage());
+            }
+        }
+    }
+
+    private void reopenFixedExpenseHistory() {
+        int id = getSelectedId(fixedExpenseHistoryTable);
+
+        if (id == -1) {
+            showError("Selecione uma despesa fixa mensal.");
+            return;
+        }
+
+        int row = fixedExpenseHistoryTable.getSelectedRow();
+        int modelRow = fixedExpenseHistoryTable.convertRowIndexToModel(row);
+
+        String currentStatus = fixedExpenseHistoryTable.getModel()
+                .getValueAt(modelRow, 5)
+                .toString();
+
+        if (!"PAGO".equalsIgnoreCase(currentStatus)) {
+            showError("Somente despesas mensais pagas podem ser reabertas.");
+            return;
+        }
+
+        int option = JOptionPane.showConfirmDialog(
+                this,
+                "Deseja reabrir esta despesa fixa mensal?\n\n" +
+                        "Ela voltará para PENDENTE e a data de pagamento será removida.",
+                "Confirmar reabertura",
+                JOptionPane.YES_NO_OPTION
+        );
+
+        if (option == JOptionPane.YES_OPTION) {
+            try {
+                fixedExpenseHistoryDAO.reopen(id);
+                loadFixedExpenseHistoryByPeriod();
+                showSuccess("Despesa fixa mensal reaberta com sucesso!");
+            } catch (Exception e) {
+                showError(e.getMessage());
+            }
         }
     }
 

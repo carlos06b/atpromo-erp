@@ -193,22 +193,15 @@ public class ReportFrame extends JFrame {
             return;
         }
 
-        JFileChooser chooser = new JFileChooser();
-        chooser.setSelectedFile(new java.io.File("relatorio_financeiro.xlsx"));
+        String path = util.FileSaveDialog.chooseXlsxPath(this, "relatorio_financeiro.xlsx");
 
-        int option = chooser.showSaveDialog(this);
-
-        if (option == JFileChooser.APPROVE_OPTION) {
-            String path = chooser.getSelectedFile().getAbsolutePath();
-
-            if (!path.toLowerCase().endsWith(".xlsx")) {
-                path += ".xlsx";
-            }
-
-            util.ExcelGenerator.generateTextReport(content, path);
-
-            JOptionPane.showMessageDialog(this, "Relatório exportado em Excel com sucesso.");
+        if (path == null) {
+            return;
         }
+
+        util.ExcelGenerator.generateTextReport(content, path);
+
+        JOptionPane.showMessageDialog(this, "Relatório exportado em Excel com sucesso.");
     }
 
     private void generateGeneralReport() {

@@ -2,6 +2,7 @@ package util;
 
 import model.Client;
 import model.InvoiceView;
+import model.PayrollLine;
 import model.PromoterPaymentData;
 
 import org.apache.poi.ss.usermodel.*;
@@ -9,10 +10,16 @@ import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 
 import java.io.FileOutputStream;
 import java.math.BigDecimal;
+import java.math.RoundingMode;
+import java.text.NumberFormat;
+import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
+import java.util.Locale;
 
 public class ExcelGenerator {
+
+    private static final Locale BR_LOCALE = new Locale("pt", "BR");
 
     public static void generateInvoices(List<InvoiceView> invoices, String path) {
         try (Workbook workbook = new XSSFWorkbook()) {
@@ -20,15 +27,15 @@ public class ExcelGenerator {
             Sheet sheet = workbook.createSheet("Faturamento");
 
             DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd/MM/yyyy");
+            CellStyle headerStyle = createHeaderStyle(workbook);
+            CellStyle moneyStyle = createMoneyStyle(workbook);
 
             Row header = sheet.createRow(0);
 
             String[] columns = {
-                    "Indústria", "Vínculo", "Valor",
-                    "Previsto", "Faturado em", "Pago em", "Status"
+                    "Indústria", "Vínculo", "Valor Faturado", "Valor Recebido",
+                    "Previsto", "Faturado em", "Recebido em", "Status"
             };
-
-            CellStyle headerStyle = createHeaderStyle(workbook);
 
             for (int i = 0; i < columns.length; i++) {
                 Cell cell = header.createCell(i);
@@ -41,23 +48,34 @@ public class ExcelGenerator {
             for (InvoiceView inv : invoices) {
                 Row row = sheet.createRow(rowNum++);
 
-                row.createCell(0).setCellValue(inv.getClientName());
-                row.createCell(1).setCellValue(inv.getCompanyLink());
-                row.createCell(2).setCellValue(inv.getAmount().doubleValue());
+                row.createCell(0).setCellValue(nullToBlank(inv.getClientName()));
+                row.createCell(1).setCellValue(nullToBlank(inv.getCompanyLink()));
 
-                row.createCell(3).setCellValue(
+                Cell amountCell = row.createCell(2);
+                amountCell.setCellValue(inv.getAmount() != null ? inv.getAmount().doubleValue() : 0);
+                amountCell.setCellStyle(moneyStyle);
+
+                Cell receivedCell = row.createCell(3);
+                if (inv.getReceivedAmount() != null) {
+                    receivedCell.setCellValue(inv.getReceivedAmount().doubleValue());
+                    receivedCell.setCellStyle(moneyStyle);
+                } else {
+                    receivedCell.setCellValue("-");
+                }
+
+                row.createCell(4).setCellValue(
                         inv.getDueDate() != null ? inv.getDueDate().format(formatter) : "-"
                 );
 
-                row.createCell(4).setCellValue(
+                row.createCell(5).setCellValue(
                         inv.getIssueDate() != null ? inv.getIssueDate().format(formatter) : "-"
                 );
 
-                row.createCell(5).setCellValue(
+                row.createCell(6).setCellValue(
                         inv.getPaymentDate() != null ? inv.getPaymentDate().format(formatter) : "-"
                 );
 
-                row.createCell(6).setCellValue(inv.getStatus());
+                row.createCell(7).setCellValue(nullToBlank(inv.getStatus()));
             }
 
             autoSizeColumns(sheet, columns.length);
@@ -67,7 +85,142 @@ public class ExcelGenerator {
             }
 
         } catch (Exception e) {
-            throw new RuntimeException("Erro ao gerar Excel", e);
+            throw new RuntimeException("Erro ao gerar Excel de faturamento", e);
+        }
+    }
+
+    public static void generatePayrollReport(List<PayrollLine> lines, LocalDate start, LocalDate end, String promoterType, String path) {
+        try (Workbook workbook = new XSSFWorkbook()) {
+
+            Sheet sheet = workbook.createSheet("Folha de Pagamento");
+
+            CellStyle headerStyle = createHeaderStyle(workbook);
+            CellStyle moneyStyle = createMoneyStyle(workbook);
+
+            CellStyle titleStyle = workbook.createCellStyle();
+            Font titleFont = workbook.createFont();
+            titleFont.setBold(true);
+            titleFont.setFontHeightInPoints((short) 16);
+            titleStyle.setFont(titleFont);
+
+            CellStyle totalStyle = workbook.createCellStyle();
+            Font totalFont = workbook.createFont();
+            totalFont.setBold(true);
+            totalStyle.setFont(totalFont);
+
+            CellStyle totalMoneyStyle = workbook.createCellStyle();
+            totalMoneyStyle.cloneStyleFrom(moneyStyle);
+            totalMoneyStyle.setFont(totalFont);
+
+            DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd/MM/yyyy");
+
+            Row titleRow = sheet.createRow(0);
+            Cell titleCell = titleRow.createCell(0);
+            titleCell.setCellValue("RELATÓRIO DA FOLHA DE PAGAMENTO");
+            titleCell.setCellStyle(titleStyle);
+
+            Row periodRow = sheet.createRow(2);
+            periodRow.createCell(0).setCellValue("Período:");
+            periodRow.createCell(1).setCellValue(start.format(formatter) + " até " + end.format(formatter));
+
+            Row typeRow = sheet.createRow(3);
+            typeRow.createCell(0).setCellValue("Tipo:");
+            typeRow.createCell(1).setCellValue(promoterType);
+
+            String[] columns = {
+                    "Promotor",
+                    "Tipo",
+                    "Salário/Base",
+                    "Descontos",
+                    "Líquido a Pagar",
+                    "Status",
+                    "Observação"
+            };
+
+            int headerRowIndex = 5;
+            Row header = sheet.createRow(headerRowIndex);
+
+            for (int i = 0; i < columns.length; i++) {
+                Cell cell = header.createCell(i);
+                cell.setCellValue(columns[i]);
+                cell.setCellStyle(headerStyle);
+            }
+
+            BigDecimal totalBase = BigDecimal.ZERO;
+            BigDecimal totalDiscounts = BigDecimal.ZERO;
+            BigDecimal totalNet = BigDecimal.ZERO;
+
+            int rowNum = headerRowIndex + 1;
+
+            for (PayrollLine line : lines) {
+                BigDecimal baseSalary = line.getBaseSalary() != null ? line.getBaseSalary() : BigDecimal.ZERO;
+                BigDecimal discounts = line.getDiscounts() != null ? line.getDiscounts() : BigDecimal.ZERO;
+                BigDecimal netAmount = line.getNetAmount() != null ? line.getNetAmount() : BigDecimal.ZERO;
+
+                totalBase = totalBase.add(baseSalary);
+                totalDiscounts = totalDiscounts.add(discounts);
+                totalNet = totalNet.add(netAmount);
+
+                Row row = sheet.createRow(rowNum++);
+
+                row.createCell(0).setCellValue(nullToBlank(line.getPromoterName()));
+                row.createCell(1).setCellValue(nullToBlank(line.getPromoterType()));
+
+                Cell baseCell = row.createCell(2);
+                baseCell.setCellValue(baseSalary.doubleValue());
+                baseCell.setCellStyle(moneyStyle);
+
+                Cell discountCell = row.createCell(3);
+                discountCell.setCellValue(discounts.doubleValue());
+                discountCell.setCellStyle(moneyStyle);
+
+                Cell netCell = row.createCell(4);
+                netCell.setCellValue(netAmount.doubleValue());
+                netCell.setCellStyle(moneyStyle);
+
+                row.createCell(5).setCellValue(nullToBlank(line.getStatus()));
+                row.createCell(6).setCellValue(nullToBlank(line.getObservation()));
+            }
+
+            Row totalRow = sheet.createRow(rowNum + 1);
+
+            Cell totalLabelCell = totalRow.createCell(0);
+            totalLabelCell.setCellValue("TOTAL GERAL");
+            totalLabelCell.setCellStyle(totalStyle);
+
+            Cell totalBaseCell = totalRow.createCell(2);
+            totalBaseCell.setCellValue(totalBase.doubleValue());
+            totalBaseCell.setCellStyle(totalMoneyStyle);
+
+            Cell totalDiscountCell = totalRow.createCell(3);
+            totalDiscountCell.setCellValue(totalDiscounts.doubleValue());
+            totalDiscountCell.setCellStyle(totalMoneyStyle);
+
+            Cell totalNetCell = totalRow.createCell(4);
+            totalNetCell.setCellValue(totalNet.doubleValue());
+            totalNetCell.setCellStyle(totalMoneyStyle);
+
+            Row countRow = sheet.createRow(rowNum + 3);
+            countRow.createCell(0).setCellValue("Quantidade de promotores:");
+            countRow.createCell(1).setCellValue(lines.size());
+
+            sheet.setAutoFilter(new org.apache.poi.ss.util.CellRangeAddress(
+                    headerRowIndex,
+                    Math.max(headerRowIndex, rowNum - 1),
+                    0,
+                    columns.length - 1
+            ));
+
+            sheet.createFreezePane(0, headerRowIndex + 1);
+
+            autoSizeColumns(sheet, columns.length);
+
+            try (FileOutputStream fileOut = new FileOutputStream(path)) {
+                workbook.write(fileOut);
+            }
+
+        } catch (Exception e) {
+            throw new RuntimeException("Erro ao gerar relatório da folha", e);
         }
     }
 
@@ -191,9 +344,7 @@ public class ExcelGenerator {
                 row.createCell(2).setCellValue(name != null ? name.toUpperCase() : "");
                 row.createCell(3).setCellValue(mapPixType(pixType));
                 row.createCell(4).setCellValue(formatPix(pix, pixType));
-                row.createCell(5).setCellValue(
-                        payment.getAmount() != null ? formatMoney(payment.getAmount()) : ""
-                );
+                row.createCell(5).setCellValue(payment.getAmount() != null ? formatMoney(payment.getAmount()) : "");
                 row.createCell(6).setCellValue(payment.getPaymentDate().format(formatter));
             }
 
@@ -213,7 +364,7 @@ public class ExcelGenerator {
 
             Sheet sheet = workbook.createSheet("Clientes");
 
-            String[] columns = {"Indústria", "CNPJ", "Telefone", "Vínculo", "Status"};
+            String[] columns = {"Indústria", "CNPJ", "Telefone", "Email", "Vínculo", "Status"};
 
             CellStyle headerStyle = createHeaderStyle(workbook);
 
@@ -230,11 +381,12 @@ public class ExcelGenerator {
             for (Client client : clients) {
                 Row row = sheet.createRow(rowNum++);
 
-                row.createCell(0).setCellValue(client.getName());
-                row.createCell(1).setCellValue(client.getCnpj());
-                row.createCell(2).setCellValue(client.getPhone());
-                row.createCell(3).setCellValue(client.getCompanyLink());
-                row.createCell(4).setCellValue(client.isActive() ? "Ativo" : "Inativo");
+                row.createCell(0).setCellValue(nullToBlank(client.getName()));
+                row.createCell(1).setCellValue(nullToBlank(client.getCnpj()));
+                row.createCell(2).setCellValue(nullToBlank(client.getPhone()));
+                row.createCell(3).setCellValue(nullToBlank(client.getEmail()));
+                row.createCell(4).setCellValue(nullToBlank(client.getCompanyLink()));
+                row.createCell(5).setCellValue(client.isActive() ? "Ativo" : "Inativo");
             }
 
             autoSizeColumns(sheet, columns.length);
@@ -256,10 +408,14 @@ public class ExcelGenerator {
         }
 
         if (clean.length() == 14) {
-            return "2"; // CNPJ
+            return "2";
         }
 
-        return "1"; // CPF
+        if (clean.length() == 11) {
+            return "1";
+        }
+
+        return "";
     }
 
     private static String mapPixType(String pixType) {
@@ -345,9 +501,10 @@ public class ExcelGenerator {
             return "R$ 0,00";
         }
 
-        return "R$ " + value.setScale(2, java.math.RoundingMode.HALF_UP)
-                .toString()
-                .replace(".", ",");
+        NumberFormat moneyFormat = NumberFormat.getCurrencyInstance(BR_LOCALE);
+
+        return moneyFormat.format(value.setScale(2, RoundingMode.HALF_UP))
+                .replace('\u00A0', ' ');
     }
 
     private static String onlyNumbers(String value) {
@@ -358,12 +515,27 @@ public class ExcelGenerator {
         return value.replaceAll("[^0-9]", "");
     }
 
+    private static String nullToBlank(String value) {
+        return value != null ? value : "";
+    }
+
     private static CellStyle createHeaderStyle(Workbook workbook) {
         CellStyle headerStyle = workbook.createCellStyle();
+
         Font headerFont = workbook.createFont();
         headerFont.setBold(true);
+
         headerStyle.setFont(headerFont);
         return headerStyle;
+    }
+
+    private static CellStyle createMoneyStyle(Workbook workbook) {
+        CellStyle moneyStyle = workbook.createCellStyle();
+
+        DataFormat dataFormat = workbook.createDataFormat();
+        moneyStyle.setDataFormat(dataFormat.getFormat("\"R$\" #,##0.00"));
+
+        return moneyStyle;
     }
 
     private static void autoSizeColumns(Sheet sheet, int totalColumns) {

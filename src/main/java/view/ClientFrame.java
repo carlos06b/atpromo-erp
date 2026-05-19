@@ -533,22 +533,15 @@ public class ClientFrame extends JFrame {
                 return;
             }
 
-            JFileChooser chooser = new JFileChooser();
-            chooser.setSelectedFile(new java.io.File("clientes_industrias.xlsx"));
+            String path = util.FileSaveDialog.chooseXlsxPath(this, "clientes_industrias.xlsx");
 
-            int option = chooser.showSaveDialog(this);
-
-            if (option == JFileChooser.APPROVE_OPTION) {
-                String path = chooser.getSelectedFile().getAbsolutePath();
-
-                if (!path.toLowerCase().endsWith(".xlsx")) {
-                    path += ".xlsx";
-                }
-
-                util.ExcelGenerator.generateClients(clients, path);
-
-                JOptionPane.showMessageDialog(this, "Excel de clientes gerado com sucesso.");
+            if (path == null) {
+                return;
             }
+
+            util.ExcelGenerator.generateClients(clients, path);
+
+            JOptionPane.showMessageDialog(this, "Excel de clientes gerado com sucesso.");
 
         } catch (Exception e) {
             JOptionPane.showMessageDialog(this, e.getMessage(), "Erro", JOptionPane.ERROR_MESSAGE);

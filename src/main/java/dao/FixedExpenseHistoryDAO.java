@@ -182,6 +182,33 @@ public class FixedExpenseHistoryDAO {
         }
     }
 
+    public void updateAmountAndDueDate(int id, BigDecimal amount, LocalDate dueDate) {
+        String sql = """
+        UPDATE fixed_expense_history
+        SET amount = ?,
+            due_date = ?
+        WHERE id = ?
+          AND status = 'PENDENTE'
+        """;
+
+        try (Connection conn = ConnectionFactory.getConnection();
+             PreparedStatement stmt = conn.prepareStatement(sql)) {
+
+            stmt.setBigDecimal(1, amount);
+            stmt.setDate(2, java.sql.Date.valueOf(dueDate));
+            stmt.setInt(3, id);
+
+            int rows = stmt.executeUpdate();
+
+            if (rows == 0) {
+                throw new RuntimeException("Despesa mensal não encontrada ou não está pendente.");
+            }
+
+        } catch (Exception e) {
+            throw new RuntimeException("Erro ao atualizar despesa fixa mensal: " + e.getMessage(), e);
+        }
+    }
+
     public BigDecimal getTotalByPeriod(LocalDate start, LocalDate end) {
 
         String sql = "SELECT SUM(amount) AS total FROM fixed_expense_history WHERE due_date BETWEEN ? AND ?";
@@ -204,5 +231,30 @@ public class FixedExpenseHistoryDAO {
         }
 
         return BigDecimal.ZERO;
+    }
+
+    public void reopen(int id) {
+        String sql = """
+        UPDATE fixed_expense_history
+        SET status = 'PENDENTE',
+            payment_date = NULL
+        WHERE id = ?
+          AND status = 'PAGO'
+        """;
+
+        try (Connection conn = ConnectionFactory.getConnection();
+             PreparedStatement stmt = conn.prepareStatement(sql)) {
+
+            stmt.setInt(1, id);
+
+            int rows = stmt.executeUpdate();
+
+            if (rows == 0) {
+                throw new RuntimeException("Despesa mensal não encontrada ou não está paga.");
+            }
+
+        } catch (Exception e) {
+            throw new RuntimeException("Erro ao reabrir despesa fixa mensal: " + e.getMessage(), e);
+        }
     }
 }

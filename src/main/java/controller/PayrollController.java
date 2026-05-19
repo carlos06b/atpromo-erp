@@ -3,27 +3,111 @@ package controller;
 import dao.FinancePromoterDAO;
 import dao.PromoterDAO;
 import model.FinancePromoter;
+import model.PayrollLine;
 import model.Promoter;
 import model.PromoterPaymentData;
 
 import java.math.BigDecimal;
+import java.math.RoundingMode;
+import java.text.NumberFormat;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
-import java.util.List;
 import java.util.ArrayList;
 import java.util.Comparator;
+import java.util.List;
+import java.util.Locale;
 
 public class PayrollController {
 
-    private PromoterDAO promoterDAO = new PromoterDAO();
-    private FinancePromoterDAO financePromoterDAO = new FinancePromoterDAO();
+    private final PromoterDAO promoterDAO = new PromoterDAO();
+    private final FinancePromoterDAO financePromoterDAO = new FinancePromoterDAO();
 
-    public String generatePayroll(LocalDate start, LocalDate end, String promoterType) {
+    private final Locale BR_LOCALE = new Locale("pt", "BR");
+    private final NumberFormat MONEY_FORMAT = NumberFormat.getCurrencyInstance(BR_LOCALE);
+
+    public List<PayrollLine> generatePayrollLines(LocalDate start, LocalDate end, String promoterType) {
         if (start.isAfter(end)) {
-            return "Erro: data inicial não pode ser maior que a final.";
+            throw new RuntimeException("Data inicial não pode ser maior que a final.");
         }
 
         List<Promoter> promoters = promoterDAO.findAll();
+        List<PayrollLine> lines = new ArrayList<>();
+
+        for (Promoter promoter : promoters) {
+            if (!promoter.isActive()) {
+                continue;
+            }
+
+            if (!promoterType.equalsIgnoreCase("TODOS")
+                    && !promoter.getType().equalsIgnoreCase(promoterType)) {
+                continue;
+            }
+
+            List<FinancePromoter> launches = financePromoterDAO.findByPromoterAndPeriod(
+                    promoter.getId(),
+                    start,
+                    end
+            );
+
+            BigDecimal discounts = BigDecimal.ZERO;
+
+            for (FinancePromoter finance : launches) {
+                String type = finance.getType();
+                BigDecimal amount = finance.getAmount();
+
+                if (type == null || amount == null) {
+                    continue;
+                }
+
+                if ("DESCONTO".equalsIgnoreCase(type)) {
+                    discounts = discounts.add(amount);
+                }
+            }
+
+            BigDecimal baseSalary = promoter.getSalary();
+
+            if (baseSalary == null) {
+                baseSalary = BigDecimal.ZERO;
+            }
+
+            BigDecimal netAmount = baseSalary.subtract(discounts);
+            String status = "OK";
+            String observation = "Conferido";
+
+            if (baseSalary.compareTo(BigDecimal.ZERO) <= 0) {
+                status = "ATENÇÃO";
+                observation = "Promotor sem salário/base cadastrado";
+            } else if (netAmount.compareTo(BigDecimal.ZERO) < 0) {
+                status = "ATENÇÃO";
+                observation = "Descontos maiores que o salário/base";
+            }
+
+            lines.add(new PayrollLine(
+                    promoter.getId(),
+                    promoter.getName(),
+                    promoter.getType(),
+                    baseSalary,
+                    discounts,
+                    netAmount,
+                    status,
+                    observation
+            ));
+        }
+
+        lines.sort(Comparator.comparing(
+                PayrollLine::getPromoterName,
+                Comparator.nullsLast(String.CASE_INSENSITIVE_ORDER)
+        ));
+
+        return lines;
+    }
+
+    public String generatePayroll(LocalDate start, LocalDate end, String promoterType) {
+        List<PayrollLine> lines = generatePayrollLines(start, end, promoterType);
+
+        if (lines.isEmpty()) {
+            return "Nenhum promotor encontrado para esse filtro.";
+        }
 
         StringBuilder report = new StringBuilder();
 
@@ -41,75 +125,35 @@ public class PayrollController {
         BigDecimal totalDesconto = BigDecimal.ZERO;
         BigDecimal totalLiquido = BigDecimal.ZERO;
 
-        boolean found = false;
+        for (PayrollLine line : lines) {
+            totalBase = totalBase.add(line.getBaseSalary());
+            totalDesconto = totalDesconto.add(line.getDiscounts());
+            totalLiquido = totalLiquido.add(line.getNetAmount());
 
-        for (Promoter promoter : promoters) {
-            if (!promoter.isActive()) {
-                continue;
-            }
-
-            if (!promoterType.equalsIgnoreCase("TODOS")
-                    && !promoter.getType().equalsIgnoreCase(promoterType)) {
-                continue;
-            }
-
-            found = true;
-
-            List<FinancePromoter> launches = financePromoterDAO.findByPromoterAndPeriod(
-                    promoter.getId(),
-                    start,
-                    end
-            );
-
-            BigDecimal desconto = BigDecimal.ZERO;
-
-            for (FinancePromoter finance : launches) {
-                String type = finance.getType();
-                BigDecimal amount = finance.getAmount();
-
-                if (type == null || amount == null) {
-                    continue;
-                }
-
-                if ("DESCONTO".equalsIgnoreCase(type)) {
-                    desconto = desconto.add(amount);
-                }
-            }
-
-            BigDecimal baseSalary = promoter.getSalary();
-
-            if (baseSalary == null) {
-                baseSalary = BigDecimal.ZERO;
-            }
-
-            BigDecimal totalToPay = baseSalary.subtract(desconto);
-
-            totalBase = totalBase.add(baseSalary);
-            totalDesconto = totalDesconto.add(desconto);
-            totalLiquido = totalLiquido.add(totalToPay);
-
-            report.append("Promotor: ").append(promoter.getName()).append("\n");
-            report.append("Tipo: ").append(promoter.getType()).append("\n");
-            report.append("Salário/Base: R$ ").append(baseSalary).append("\n");
-            report.append("Descontos: R$ ").append(desconto).append("\n");
-            report.append("TOTAL LÍQUIDO A PAGAR: R$ ").append(totalToPay).append("\n");
+            report.append("Promotor: ").append(line.getPromoterName()).append("\n");
+            report.append("Tipo: ").append(line.getPromoterType()).append("\n");
+            report.append("Salário/Base: ").append(formatMoney(line.getBaseSalary())).append("\n");
+            report.append("Descontos: ").append(formatMoney(line.getDiscounts())).append("\n");
+            report.append("TOTAL LÍQUIDO A PAGAR: ").append(formatMoney(line.getNetAmount())).append("\n");
+            report.append("Status: ").append(line.getStatus()).append("\n");
+            report.append("Observação: ").append(line.getObservation()).append("\n");
             report.append("------------------------------------------------------------\n");
         }
 
-        if (!found) {
-            return "Nenhum promotor encontrado para esse filtro.";
-        }
-
         report.append("\n=== RESUMO DA FOLHA ===\n");
-        report.append("Total Salário/Base: R$ ").append(totalBase).append("\n");
-        report.append("Total Descontos: R$ ").append(totalDesconto).append("\n");
+        report.append("Total Salário/Base: ").append(formatMoney(totalBase)).append("\n");
+        report.append("Total Descontos: ").append(formatMoney(totalDesconto)).append("\n");
         report.append("------------------------------------------------------------\n");
-        report.append("TOTAL LÍQUIDO DA FOLHA: R$ ").append(totalLiquido).append("\n");
+        report.append("TOTAL LÍQUIDO DA FOLHA: ").append(formatMoney(totalLiquido)).append("\n");
 
         return report.toString();
     }
 
     public List<PromoterPaymentData> getMeiPixBatch(LocalDate paymentDate) {
+        if (paymentDate == null) {
+            throw new RuntimeException("Informe a data de pagamento.");
+        }
+
         List<Promoter> promoters = promoterDAO.findAll();
         List<PromoterPaymentData> payments = new ArrayList<>();
 
@@ -119,6 +163,10 @@ public class PayrollController {
             }
 
             if (promoter.getType() == null || !promoter.getType().equalsIgnoreCase("MEI")) {
+                continue;
+            }
+
+            if (promoter.getPix() == null || promoter.getPix().isBlank()) {
                 continue;
             }
 
@@ -136,10 +184,19 @@ public class PayrollController {
 
         payments.sort(Comparator.comparing(
                 PromoterPaymentData::getName,
-                String.CASE_INSENSITIVE_ORDER
+                Comparator.nullsLast(String.CASE_INSENSITIVE_ORDER)
         ));
 
         return payments;
+    }
+
+    private String formatMoney(BigDecimal value) {
+        if (value == null) {
+            return "R$ 0,00";
+        }
+
+        return MONEY_FORMAT.format(value.setScale(2, RoundingMode.HALF_UP))
+                .replace('\u00A0', ' ');
     }
 
     private String formatDate(LocalDate date) {
