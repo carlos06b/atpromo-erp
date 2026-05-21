@@ -13,6 +13,9 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.math.RoundingMode;
+import java.text.NumberFormat;
+import java.util.Locale;
 
 public class FinancePromoterDAO {
 
@@ -217,6 +220,17 @@ public class FinancePromoterDAO {
 
     private String formatDate(LocalDate date) {
         return date.format(DateTimeFormatter.ofPattern("dd/MM/yyyy"));
+    }
+
+    private String formatMoney(BigDecimal value) {
+        if (value == null) {
+            return "R$ 0,00";
+        }
+
+        NumberFormat moneyFormat = NumberFormat.getCurrencyInstance(new Locale("pt", "BR"));
+
+        return moneyFormat.format(value.setScale(2, RoundingMode.HALF_UP))
+                .replace('\u00A0', ' ');
     }
 
     private String formatType(String type) {

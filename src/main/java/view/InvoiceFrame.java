@@ -620,7 +620,7 @@ public class InvoiceFrame extends JFrame {
     private void updateDashboard(List<InvoiceView> invoices) {
         BigDecimal pending = BigDecimal.ZERO;
         BigDecimal issued = BigDecimal.ZERO;
-        BigDecimal paid = BigDecimal.ZERO;
+        BigDecimal received = BigDecimal.ZERO;
         int canceledCount = 0;
 
         for (InvoiceView invoice : invoices) {
@@ -630,15 +630,21 @@ public class InvoiceFrame extends JFrame {
 
             switch (invoice.getStatus()) {
                 case "PENDENTE" -> pending = pending.add(invoice.getAmount());
+
                 case "FATURADO" -> issued = issued.add(invoice.getAmount());
-                case "PAGO" -> paid = paid.add(getReceivedAmount(invoice));
+
+                case "PAGO" -> {
+                    issued = issued.add(invoice.getAmount());
+                    received = received.add(getReceivedAmount(invoice));
+                }
+
                 case "CANCELADO" -> canceledCount++;
             }
         }
 
         lblPending.setText("Pendente: " + formatMoney(pending));
         lblIssued.setText("Faturado: " + formatMoney(issued));
-        lblPaid.setText("Recebido: " + formatMoney(paid));
+        lblPaid.setText("Recebido: " + formatMoney(received));
         lblCanceled.setText("Cancelado: " + canceledCount + " registros");
     }
 

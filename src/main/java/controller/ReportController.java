@@ -10,10 +10,12 @@ import model.VariableExpense;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
+import java.text.NumberFormat;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.util.Map;
+import java.util.Locale;
 
 public class ReportController {
 
@@ -182,19 +184,25 @@ public class ReportController {
     public String buildTypeReport(LocalDate start, LocalDate end) {
         validatePeriod(start, end);
 
+        BigDecimal expectedIncome = invoiceDAO.getTotalExpectedByDueDatePeriod(start, end);
+        BigDecimal issuedIncome = invoiceDAO.getTotalIssuedByIssuePeriod(start, end);
+        BigDecimal receivedIncome = invoiceDAO.getTotalPaidByPaymentPeriod(start, end);
+        BigDecimal openIncome = invoiceDAO.getTotalOpenByDueDatePeriod(start, end);
+        BigDecimal canceledIncome = invoiceDAO.getTotalCanceledByDueDatePeriod(start, end);
+
         Map<String, BigDecimal> promoterTotals = financePromoterDAO.getTotalByTypeAndPeriod(start, end);
-        Map<String, BigDecimal> invoiceStatusTotals = invoiceDAO.getTotalByStatusAndDueDatePeriod(start, end);
         Map<String, BigDecimal> companyTotals = invoiceDAO.getTotalByCompanyAndDueDatePeriod(start, end);
 
         StringBuilder report = new StringBuilder();
 
         appendHeader(report, "VISÃO ESPECÍFICA POR TIPO", start, end);
 
-        appendSection(report, "ENTRADAS POR STATUS");
-        appendMetric(report, "Pendente", invoiceStatusTotals.getOrDefault("PENDENTE", BigDecimal.ZERO));
-        appendMetric(report, "Faturado", invoiceStatusTotals.getOrDefault("FATURADO", BigDecimal.ZERO));
-        appendMetric(report, "Pago", invoiceStatusTotals.getOrDefault("PAGO", BigDecimal.ZERO));
-        appendMetric(report, "Cancelado", invoiceStatusTotals.getOrDefault("CANCELADO", BigDecimal.ZERO));
+        appendSection(report, "ENTRADAS E RECEBIMENTOS");
+        appendMetric(report, "Previsto por vencimento", expectedIncome);
+        appendMetric(report, "Faturado no período", issuedIncome);
+        appendMetric(report, "Recebido no período", receivedIncome);
+        appendMetric(report, "A receber", openIncome);
+        appendMetric(report, "Cancelado", canceledIncome);
 
         appendSection(report, "ENTRADAS POR VÍNCULO");
         appendMetric(report, "AT", companyTotals.getOrDefault("AT", BigDecimal.ZERO));
@@ -205,6 +213,14 @@ public class ReportController {
         appendMetric(report, "Ajuda de custo", promoterTotals.getOrDefault("AJUDA_CUSTO", BigDecimal.ZERO));
         appendMetric(report, "ASO", promoterTotals.getOrDefault("ASO", BigDecimal.ZERO));
         appendMetric(report, "EPI", promoterTotals.getOrDefault("EPI", BigDecimal.ZERO));
+        appendMetric(report, "Rescisão", promoterTotals.getOrDefault("RESCISAO", BigDecimal.ZERO));
+        appendMetric(report, "Férias", promoterTotals.getOrDefault("FERIAS", BigDecimal.ZERO));
+        appendMetric(report, "Adiantamento", promoterTotals.getOrDefault("ADIANTAMENTO", BigDecimal.ZERO));
+        appendMetric(report, "Reembolso", promoterTotals.getOrDefault("REEMBOLSO", BigDecimal.ZERO));
+        appendMetric(report, "Correção de pagamento", promoterTotals.getOrDefault("CORRECAO_PAGAMENTO", BigDecimal.ZERO));
+        appendMetric(report, "Atestado", promoterTotals.getOrDefault("ATESTADO", BigDecimal.ZERO));
+        appendMetric(report, "Alteração de dados", promoterTotals.getOrDefault("ALTERACAO_DADOS", BigDecimal.ZERO));
+        appendMetric(report, "Outros", promoterTotals.getOrDefault("OUTROS", BigDecimal.ZERO));
         appendMetric(report, "Desconto", promoterTotals.getOrDefault("DESCONTO", BigDecimal.ZERO));
 
         appendSection(report, "OUTRAS SAÍDAS");
@@ -215,12 +231,12 @@ public class ReportController {
     }
 
     private BigDecimal calculatePromoterExpenses(Map<String, BigDecimal> totals) {
-        String[] expenseTypes = {"BONIFICACAO", "AJUDA_CUSTO", "ASO", "EPI"};
-
         BigDecimal total = BigDecimal.ZERO;
 
-        for (String type : expenseTypes) {
-            total = total.add(totals.getOrDefault(type, BigDecimal.ZERO));
+        for (Map.Entry<String, BigDecimal> entry : totals.entrySet()) {
+            if (!"DESCONTO".equalsIgnoreCase(entry.getKey())) {
+                total = total.add(nullToZero(entry.getValue()));
+            }
         }
 
         return total;
@@ -312,7 +328,11 @@ public class ReportController {
 
     private String formatMoney(BigDecimal value) {
         BigDecimal safeValue = nullToZero(value).setScale(2, RoundingMode.HALF_UP);
-        return "R$ " + safeValue.toString().replace(".", ",");
+
+        NumberFormat moneyFormat = NumberFormat.getCurrencyInstance(new Locale("pt", "BR"));
+
+        return moneyFormat.format(safeValue)
+                .replace('\u00A0', ' ');
     }
 
     private BigDecimal nullToZero(BigDecimal value) {

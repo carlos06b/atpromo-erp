@@ -224,7 +224,7 @@ public class ReportFrame extends JFrame {
             return;
         }
 
-        String output = captureOutput(() -> financeController.showReportByPeriod(start, end));
+        String output = reportController.buildExpenseReport(start, end);
         showOutput("Financeiro completo gerado", "RELATÓRIO FINANCEIRO COMPLETO", start, end, output);
     }
 
@@ -236,7 +236,7 @@ public class ReportFrame extends JFrame {
             return;
         }
 
-        String output = captureOutput(() -> financeController.showReportByTypeAndPeriod(start, end));
+        String output = reportController.buildTypeReport(start, end);
         showOutput("Relatório por tipo gerado", "RELATÓRIO POR TIPO", start, end, output);
     }
 
@@ -350,8 +350,9 @@ public class ReportFrame extends JFrame {
                    Lista os lançamentos financeiros do período.
 
                 3. Por Tipo
-                   Agrupa os valores por tipo, como bonificação, ajuda de custo,
-                   ASO, EPI e descontos.
+                   Agrupa os valores por tipo, incluindo bonificação, ajuda de custo,
+                   rescisão, férias, adiantamento, reembolso, correções, atestados,
+                   alteração de dados, outros e descontos.
 
                 ------------------------------------------------------------
                 Os resultados aparecerão aqui após a geração do relatório.

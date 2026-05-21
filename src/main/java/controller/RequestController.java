@@ -12,12 +12,34 @@ import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Locale;
+import java.util.Map;
 
 public class RequestController {
 
     private RequestDAO requestDAO = new RequestDAO();
     private PromoterDAO promoterDAO = new PromoterDAO();
+
+    private static final Map<String, String> TYPE_LABELS = new LinkedHashMap<>();
+
+    static {
+        TYPE_LABELS.put("BONIFICACAO", "Bonificação");
+        TYPE_LABELS.put("AJUDA_CUSTO", "Ajuda de Custo");
+        TYPE_LABELS.put("DESCONTO", "Desconto");
+        TYPE_LABELS.put("ASO", "ASO");
+        TYPE_LABELS.put("EPI", "EPI");
+        TYPE_LABELS.put("RESCISAO", "Rescisão");
+        TYPE_LABELS.put("FERIAS", "Férias");
+        TYPE_LABELS.put("ADIANTAMENTO", "Adiantamento");
+        TYPE_LABELS.put("REEMBOLSO", "Reembolso");
+        TYPE_LABELS.put("CORRECAO_PAGAMENTO", "Correção de Pagamento");
+        TYPE_LABELS.put("ATESTADO", "Atestado");
+        TYPE_LABELS.put("ALTERACAO_DADOS", "Alteração de Dados");
+        TYPE_LABELS.put("OUTROS", "Outros");
+    }
 
     public void createRequest(int idUserRH, int idUserFin, int idPromoter,
                               String type, BigDecimal amount, String message) {
@@ -27,7 +49,9 @@ public class RequestController {
             return;
         }
 
-        if (!isValidType(type)) {
+        String internalType = toInternalType(type);
+
+        if (!isValidType(internalType)) {
             System.out.println("Tipo de solicitação inválido.");
             return;
         }
@@ -47,7 +71,7 @@ public class RequestController {
         request.setId_UserRH(idUserRH);
         request.setId_UserFin(idUserFin);
         request.setId_Promoter(idPromoter);
-        request.setType(type.toUpperCase());
+        request.setType(internalType);
         request.setAmount(amount);
         request.setMessage(message);
         request.setStatus("PENDENTE");
@@ -211,22 +235,50 @@ public class RequestController {
         requestDAO.delete(id);
     }
 
+    public List<String> getValidTypeLabels() {
+        return Collections.unmodifiableList(new ArrayList<>(TYPE_LABELS.values()));
+    }
+
+    public String getTypeLabel(String type) {
+        if (type == null || type.isBlank()) {
+            return "";
+        }
+
+        String internalType = toInternalType(type);
+        return TYPE_LABELS.getOrDefault(internalType, type);
+    }
+
+    public String toInternalType(String value) {
+        if (value == null || value.isBlank()) {
+            return "";
+        }
+
+        String text = value.trim();
+
+        String possibleCode = text.toUpperCase(Locale.ROOT);
+
+        if (TYPE_LABELS.containsKey(possibleCode)) {
+            return possibleCode;
+        }
+
+        for (Map.Entry<String, String> entry : TYPE_LABELS.entrySet()) {
+            if (entry.getValue().equalsIgnoreCase(text)) {
+                return entry.getKey();
+            }
+        }
+
+        return possibleCode;
+    }
+
     private boolean isValidType(String type) {
-
-        if (type == null) return false;
-
-        return type.equalsIgnoreCase("BONIFICACAO") ||
-                type.equalsIgnoreCase("AJUDA_CUSTO") ||
-                type.equalsIgnoreCase("DESCONTO") ||
-                type.equalsIgnoreCase("ASO") ||
-                type.equalsIgnoreCase("EPI");
+        return TYPE_LABELS.containsKey(toInternalType(type));
     }
 
     private void printRequest(Request r) {
         System.out.println(
                 r.getId() + " | " +
                         "Promotor: " + r.getId_Promoter() + " | " +
-                        r.getType() + " | " +
+                        getTypeLabel(r.getType()) + " | " +
                         "R$ " + r.getAmount() + " | " +
                         r.getMessage() + " | " +
                         r.getStatus() + " | " +

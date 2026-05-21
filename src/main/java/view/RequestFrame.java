@@ -9,14 +9,15 @@ import javax.swing.*;
 import javax.swing.table.DefaultTableModel;
 import java.awt.*;
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.text.NumberFormat;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
-import java.math.RoundingMode;
 
 public class RequestFrame extends JFrame {
 
@@ -75,7 +76,7 @@ public class RequestFrame extends JFrame {
         subtitle.setBounds(32, 55, 650, 22);
         header.add(subtitle);
 
-        JLabel userLabel = new JLabel(loggedUser.getName() + " • " + loggedUser.getJobTittle());
+        JLabel userLabel = new JLabel(loggedUser.getName() + " - " + loggedUser.getJobTittle());
         userLabel.setForeground(ORANGE);
         userLabel.setFont(new Font("Segoe UI", Font.BOLD, 14));
         userLabel.setHorizontalAlignment(SwingConstants.RIGHT);
@@ -268,13 +269,9 @@ public class RequestFrame extends JFrame {
             }
         });
 
-        JComboBox<String> typeBox = new JComboBox<>(new String[]{
-                "Bonificação",
-                "Ajuda de Custo",
-                "Desconto",
-                "ASO",
-                "EPI"
-        });
+        JComboBox<String> typeBox = new JComboBox<>(
+                requestController.getValidTypeLabels().toArray(new String[0])
+        );
 
         JTextField amountField = new JTextField();
 
@@ -309,7 +306,7 @@ public class RequestFrame extends JFrame {
 
                 BigDecimal amount = parseMoney(amountField.getText());
                 String selectedType = typeBox.getSelectedItem().toString();
-                String type = convertTypeToDatabase(selectedType);
+                String type = requestController.toInternalType(selectedType);
                 String message = messageArea.getText().trim();
 
                 if (amount.compareTo(BigDecimal.ZERO) <= 0) {
@@ -430,7 +427,7 @@ public class RequestFrame extends JFrame {
         title.setFont(new Font("Segoe UI", Font.BOLD, 20));
         title.setForeground(BLACK);
 
-        JLabel subtitle = new JLabel("Promotor: " + promoter + " • Status: " + status);
+        JLabel subtitle = new JLabel("Promotor: " + promoter + " - Status: " + status);
         subtitle.setFont(new Font("Segoe UI", Font.PLAIN, 13));
         subtitle.setForeground(TEXT_GRAY);
 
@@ -499,7 +496,9 @@ public class RequestFrame extends JFrame {
     }
 
     private void exportPendingRequests() {
-        List<String> pendingRequests = requestController.getPendingWithPromoterName();
+        List<String> pendingRequests = formatRequestLinesForExport(
+                requestController.getPendingWithPromoterName()
+        );
 
         if (pendingRequests.isEmpty()) {
             showWarning("Não existem solicitações pendentes para exportar.");
@@ -570,7 +569,7 @@ public class RequestFrame extends JFrame {
 
             int id = Integer.parseInt(parts[0].trim());
             String promoter = parts[1].replace("Promotor:", "").trim();
-            String type = convertTypeToView(parts[2].trim());
+            String type = requestController.getTypeLabel(parts[2].trim());
             String amount = formatMoney(parseMoney(parts[3].trim()));
             String fullMessage = parts[4].trim();
             String shortMessage = shortenText(fullMessage, 45);
@@ -600,6 +599,29 @@ public class RequestFrame extends JFrame {
                     line
             });
         }
+    }
+
+    private List<String> formatRequestLinesForExport(List<String> lines) {
+        List<String> formattedLines = new ArrayList<>();
+
+        for (String line : lines) {
+            try {
+                String[] parts = line.split("\\|");
+
+                if (parts.length >= 7) {
+                    parts[2] = " " + requestController.getTypeLabel(parts[2].trim()) + " ";
+                    parts[3] = " " + formatMoney(parseMoney(parts[3].trim())) + " ";
+                    formattedLines.add(String.join("|", parts));
+                } else {
+                    formattedLines.add(line);
+                }
+
+            } catch (Exception e) {
+                formattedLines.add(line);
+            }
+        }
+
+        return formattedLines;
     }
 
     private JButton createPrimaryButton(String text) {
@@ -654,25 +676,11 @@ public class RequestFrame extends JFrame {
     }
 
     private String convertTypeToDatabase(String type) {
-        return switch (type) {
-            case "Bonificação" -> "BONIFICACAO";
-            case "Ajuda de Custo" -> "AJUDA_CUSTO";
-            case "Desconto" -> "DESCONTO";
-            case "ASO" -> "ASO";
-            case "EPI" -> "EPI";
-            default -> type.toUpperCase();
-        };
+        return requestController.toInternalType(type);
     }
 
     private String convertTypeToView(String type) {
-        return switch (type) {
-            case "BONIFICACAO" -> "Bonificação";
-            case "AJUDA_CUSTO" -> "Ajuda de Custo";
-            case "DESCONTO" -> "Desconto";
-            case "ASO" -> "ASO";
-            case "EPI" -> "EPI";
-            default -> type;
-        };
+        return requestController.getTypeLabel(type);
     }
 
     private String shortenText(String text, int maxLength) {
@@ -732,10 +740,11 @@ public class RequestFrame extends JFrame {
 
     private String formatMoney(BigDecimal value) {
         if (value == null) {
-            return moneyFormatter.format(BigDecimal.ZERO);
+            return moneyFormatter.format(BigDecimal.ZERO).replace('\u00A0', ' ');
         }
 
-        return moneyFormatter.format(value.setScale(2, RoundingMode.HALF_UP));
+        return moneyFormatter.format(value.setScale(2, RoundingMode.HALF_UP))
+                .replace('\u00A0', ' ');
     }
 
     private static class PromoterItem {

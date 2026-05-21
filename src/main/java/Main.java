@@ -305,7 +305,7 @@ public class Main {
     public static void createRequest(Scanner sc, User loggedUser, RequestController controller) {
         int idFinanceiro = readInt(sc, "ID do usuário financeiro: ");
         int idPromoter = readInt(sc, "ID do promotor: ");
-        String type = readType(sc, "Tipo (BONIFICACAO / AJUDA_CUSTO / DESCONTO): ");
+        String type = readType(sc, "Tipo da solicitação: ");
         BigDecimal amount = readPositiveBigDecimal(sc, "Valor: ");
 
         System.out.print("Mensagem: ");
