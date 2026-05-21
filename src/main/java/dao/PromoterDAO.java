@@ -14,8 +14,11 @@ public class PromoterDAO {
 
     public int save(Promoter promoter) {
 
-        String sql = "INSERT INTO promoter (name, cpf, phone, date_birth, active, salary, type, pix, pix_type) " +
-                "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)";
+        String sql = """
+                INSERT INTO promoter
+                (name, cpf, phone, uf, city, date_birth, active, salary, type, pix, pix_type)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                """;
 
         try (Connection conn = ConnectionFactory.getConnection();
              PreparedStatement stmt = conn.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
@@ -23,12 +26,14 @@ public class PromoterDAO {
             stmt.setString(1, promoter.getName());
             stmt.setString(2, promoter.getCpf());
             stmt.setString(3, promoter.getPhone());
-            stmt.setDate(4, java.sql.Date.valueOf(promoter.getDateBirth()));
-            stmt.setBoolean(5, promoter.isActive());
-            stmt.setBigDecimal(6, promoter.getSalary());
-            stmt.setString(7, promoter.getType());
-            stmt.setString(8, promoter.getPix());
-            stmt.setString(9, promoter.getPixType());
+            stmt.setString(4, promoter.getUf());
+            stmt.setString(5, promoter.getCity());
+            stmt.setDate(6, java.sql.Date.valueOf(promoter.getDateBirth()));
+            stmt.setBoolean(7, promoter.isActive());
+            stmt.setBigDecimal(8, promoter.getSalary());
+            stmt.setString(9, promoter.getType());
+            stmt.setString(10, promoter.getPix());
+            stmt.setString(11, promoter.getPixType());
 
             stmt.executeUpdate();
 
@@ -162,8 +167,21 @@ public class PromoterDAO {
 
     public void update(Promoter promoter) {
 
-        String sql = "UPDATE promoter SET name = ?, cpf = ?, phone = ?, date_birth = ?, active = ?, salary = ?, type = ?, pix = ?, pix_type = ? " +
-                "WHERE idpromoter = ?";
+        String sql = """
+                UPDATE promoter
+                SET name = ?,
+                    cpf = ?,
+                    phone = ?,
+                    uf = ?,
+                    city = ?,
+                    date_birth = ?,
+                    active = ?,
+                    salary = ?,
+                    type = ?,
+                    pix = ?,
+                    pix_type = ?
+                WHERE idpromoter = ?
+                """;
 
         try (Connection conn = ConnectionFactory.getConnection();
              PreparedStatement stmt = conn.prepareStatement(sql)) {
@@ -171,13 +189,15 @@ public class PromoterDAO {
             stmt.setString(1, promoter.getName());
             stmt.setString(2, promoter.getCpf());
             stmt.setString(3, promoter.getPhone());
-            stmt.setDate(4, java.sql.Date.valueOf(promoter.getDateBirth()));
-            stmt.setBoolean(5, promoter.isActive());
-            stmt.setBigDecimal(6, promoter.getSalary());
-            stmt.setString(7, promoter.getType());
-            stmt.setString(8, promoter.getPix());
-            stmt.setString(9, promoter.getPixType());
-            stmt.setInt(10, promoter.getId());
+            stmt.setString(4, promoter.getUf());
+            stmt.setString(5, promoter.getCity());
+            stmt.setDate(6, java.sql.Date.valueOf(promoter.getDateBirth()));
+            stmt.setBoolean(7, promoter.isActive());
+            stmt.setBigDecimal(8, promoter.getSalary());
+            stmt.setString(9, promoter.getType());
+            stmt.setString(10, promoter.getPix());
+            stmt.setString(11, promoter.getPixType());
+            stmt.setInt(12, promoter.getId());
 
             int rows = stmt.executeUpdate();
 
@@ -214,8 +234,6 @@ public class PromoterDAO {
         }
     }
 
-
-
     private Promoter buildPromoter(ResultSet rs) throws Exception {
 
         Promoter p = new Promoter();
@@ -224,6 +242,8 @@ public class PromoterDAO {
         p.setName(rs.getString("name"));
         p.setCpf(rs.getString("cpf"));
         p.setPhone(rs.getString("phone"));
+        p.setUf(rs.getString("uf"));
+        p.setCity(rs.getString("city"));
         p.setDateBirth(rs.getDate("date_birth").toLocalDate());
         p.setActive(rs.getBoolean("active"));
         p.setSalary(rs.getBigDecimal("salary"));

@@ -9,37 +9,59 @@ import java.util.List;
 
 public class PromoterController {
 
-    private PromoterDAO promoterDAO = new PromoterDAO();
+    private final PromoterDAO promoterDAO = new PromoterDAO();
 
-    public void register(String name, String cpf, String phone, String pix, String pixType,
-                         LocalDate dateBirth, BigDecimal salary, String type) {
+    public void register(String name, String cpf, String phone, String uf, String city,
+                         String pix, String pixType, LocalDate dateBirth,
+                         BigDecimal salary, String type) {
+
+        if (name == null || name.trim().isEmpty()) {
+            throw new RuntimeException("O nome do promotor é obrigatório.");
+        }
+
+        if (cpf == null || cpf.trim().isEmpty()) {
+            throw new RuntimeException("O CPF do promotor é obrigatório.");
+        }
 
         cpf = cpf.replaceAll("[^0-9]", "");
 
         if (!isValidCpf(cpf)) {
-            System.out.println("CPF inválido.");
-            return;
+            throw new RuntimeException("CPF inválido.");
         }
 
         if (promoterDAO.findByCpf(cpf) != null) {
-            System.out.println("CPF já cadastrado.");
-            return;
+            throw new RuntimeException("CPF já cadastrado.");
         }
 
-        if (!type.equalsIgnoreCase("CLT")
-                && !type.equalsIgnoreCase("MEI")
-                && !type.equalsIgnoreCase("FERISTA")) {
-            System.out.println("Tipo inválido. Use CLT, MEI ou FERISTA.");
-            return;
+        if (phone == null || phone.trim().isEmpty()) {
+            throw new RuntimeException("O telefone é obrigatório.");
+        }
+
+        if (uf == null || uf.trim().isEmpty()) {
+            throw new RuntimeException("Selecione a UF do promotor.");
+        }
+
+        if (city == null || city.trim().isEmpty()) {
+            throw new RuntimeException("Informe a cidade do promotor.");
+        }
+
+        if (!isValidPromoterType(type)) {
+            throw new RuntimeException("Tipo inválido. Use CLT, MEI ou FERISTA.");
+        }
+
+        if (salary == null || salary.compareTo(BigDecimal.ZERO) <= 0) {
+            throw new RuntimeException("O salário precisa ser maior que zero.");
         }
 
         Promoter promoter = new Promoter();
 
-        promoter.setName(name);
+        promoter.setName(name.trim());
         promoter.setCpf(cpf);
-        promoter.setPhone(phone);
-        promoter.setPix(pix);
-        promoter.setPixType(pixType);
+        promoter.setPhone(phone.trim());
+        promoter.setUf(uf.trim().toUpperCase());
+        promoter.setCity(city.trim());
+        promoter.setPix(formatNullable(pix));
+        promoter.setPixType(formatNullable(pixType));
         promoter.setDateBirth(dateBirth);
         promoter.setSalary(salary);
         promoter.setType(type.toUpperCase());
@@ -47,8 +69,8 @@ public class PromoterController {
 
         int id = promoterDAO.save(promoter);
 
-        if (id != -1) {
-            System.out.println("Promotor cadastrado com ID: " + id);
+        if (id == -1) {
+            throw new RuntimeException("Não foi possível cadastrar o promotor.");
         }
     }
 
@@ -67,6 +89,8 @@ public class PromoterController {
                             p.getName() + " | " +
                             p.getCpf() + " | " +
                             p.getPhone() + " | " +
+                            p.getUf() + " | " +
+                            p.getCity() + " | " +
                             p.getType() + " | " +
                             p.getSalary() + " | " +
                             (p.isActive() ? "ATIVO" : "INATIVO")
@@ -80,14 +104,12 @@ public class PromoterController {
 
     public List<Promoter> getByType(String type) {
 
-        if (!type.equalsIgnoreCase("CLT") && !type.equalsIgnoreCase("MEI")) {
+        if (!isValidPromoterType(type)) {
             return List.of();
         }
 
         return promoterDAO.findByType(type.toUpperCase());
     }
-
-
 
     public Promoter findById(int id) {
         return promoterDAO.findById(id);
@@ -101,34 +123,49 @@ public class PromoterController {
         return promoterDAO.findByName(name.trim());
     }
 
-
-
-    public void update(int id, String name, String phone, String pix, String pixType, BigDecimal salary, String type) {
+    public void update(int id, String name, String phone, String uf, String city,
+                       String pix, String pixType, BigDecimal salary, String type) {
 
         Promoter p = promoterDAO.findById(id);
 
         if (p == null) {
-            System.out.println("Promotor não encontrado.");
-            return;
+            throw new RuntimeException("Promotor não encontrado.");
         }
 
-        if (!type.equalsIgnoreCase("CLT")
-                && !type.equalsIgnoreCase("MEI")
-                && !type.equalsIgnoreCase("FERISTA")) {
-            System.out.println("Tipo inválido. Use CLT, MEI ou FERISTA.");
-            return;
+        if (name == null || name.trim().isEmpty()) {
+            throw new RuntimeException("O nome do promotor é obrigatório.");
         }
 
-        p.setName(name);
-        p.setPhone(phone);
-        p.setPix(pix);
-        p.setPixType(pixType);
+        if (phone == null || phone.trim().isEmpty()) {
+            throw new RuntimeException("O telefone é obrigatório.");
+        }
+
+        if (uf == null || uf.trim().isEmpty()) {
+            throw new RuntimeException("Selecione a UF do promotor.");
+        }
+
+        if (city == null || city.trim().isEmpty()) {
+            throw new RuntimeException("Informe a cidade do promotor.");
+        }
+
+        if (!isValidPromoterType(type)) {
+            throw new RuntimeException("Tipo inválido. Use CLT, MEI ou FERISTA.");
+        }
+
+        if (salary == null || salary.compareTo(BigDecimal.ZERO) <= 0) {
+            throw new RuntimeException("O salário precisa ser maior que zero.");
+        }
+
+        p.setName(name.trim());
+        p.setPhone(phone.trim());
+        p.setUf(uf.trim().toUpperCase());
+        p.setCity(city.trim());
+        p.setPix(formatNullable(pix));
+        p.setPixType(formatNullable(pixType));
         p.setSalary(salary);
         p.setType(type.toUpperCase());
 
         promoterDAO.update(p);
-
-        System.out.println("Promotor atualizado com sucesso!");
     }
 
     public void inactivate(int id) {
@@ -136,15 +173,12 @@ public class PromoterController {
         Promoter p = promoterDAO.findById(id);
 
         if (p == null) {
-            System.out.println("Promotor não encontrado.");
-            return;
+            throw new RuntimeException("Promotor não encontrado.");
         }
 
         p.setActive(false);
 
         promoterDAO.update(p);
-
-        System.out.println("Promotor inativado!");
     }
 
     public void activate(int id) {
@@ -152,15 +186,27 @@ public class PromoterController {
         Promoter p = promoterDAO.findById(id);
 
         if (p == null) {
-            System.out.println("Promotor não encontrado.");
-            return;
+            throw new RuntimeException("Promotor não encontrado.");
         }
 
         p.setActive(true);
 
         promoterDAO.update(p);
+    }
 
-        System.out.println("Promotor ativado!");
+    private boolean isValidPromoterType(String type) {
+        return type != null &&
+                (type.equalsIgnoreCase("CLT")
+                        || type.equalsIgnoreCase("MEI")
+                        || type.equalsIgnoreCase("FERISTA"));
+    }
+
+    private String formatNullable(String value) {
+        if (value == null || value.trim().isEmpty()) {
+            return null;
+        }
+
+        return value.trim();
     }
 
     private boolean isValidCpf(String cpf) {

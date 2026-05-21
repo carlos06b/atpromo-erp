@@ -9,6 +9,8 @@ public class Promoter {
     private String name;
     private String cpf;
     private String phone;
+    private String uf;
+    private String city;
     private LocalDate dateBirth;
     private boolean active;
     private BigDecimal salary;
@@ -19,18 +21,37 @@ public class Promoter {
     public Promoter() {
     }
 
-    public Promoter(int id, String name, String cpf, String phone, LocalDate dateBirth,
-                    boolean active, BigDecimal salary, String type,  String pix, String pixType) {
+    public Promoter(int id, String name, String cpf, String phone, String uf, String city,
+                    LocalDate dateBirth, boolean active, BigDecimal salary, String type,
+                    String pix, String pixType) {
         this.id = id;
         this.name = name;
         this.cpf = cpf;
         this.phone = phone;
+        this.uf = uf;
+        this.city = city;
         this.dateBirth = dateBirth;
         this.active = active;
         this.salary = salary;
         this.type = type;
         this.pix = pix;
         this.pixType = pixType;
+    }
+
+    public String getUf() {
+        return uf;
+    }
+
+    public void setUf(String uf) {
+        this.uf = uf;
+    }
+
+    public String getCity() {
+        return city;
+    }
+
+    public void setCity(String city) {
+        this.city = city;
     }
 
     public int getId() {

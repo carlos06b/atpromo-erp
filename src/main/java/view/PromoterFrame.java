@@ -7,10 +7,12 @@ import javax.swing.*;
 import javax.swing.table.DefaultTableModel;
 import java.awt.*;
 import java.math.BigDecimal;
-import java.time.LocalDate;
-import java.util.List;
 import java.math.RoundingMode;
 import java.text.NumberFormat;
+import java.time.LocalDate;
+import java.util.ArrayList;
+import java.util.Date;
+import java.util.List;
 import java.util.Locale;
 
 public class PromoterFrame extends JFrame {
@@ -36,7 +38,7 @@ public class PromoterFrame extends JFrame {
         promoterController = new PromoterController();
 
         setTitle("Sistema At Promo - Promotores");
-        setSize(1120, 700);
+        setSize(1220, 720);
         setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
         setLocationRelativeTo(null);
         setResizable(false);
@@ -52,7 +54,7 @@ public class PromoterFrame extends JFrame {
 
     private JPanel createHeaderPanel() {
         JPanel header = new JPanel(null);
-        header.setPreferredSize(new Dimension(1120, 95));
+        header.setPreferredSize(new Dimension(1220, 95));
         header.setBackground(BLACK);
 
         JLabel title = new JLabel("Gerenciamento de Promotores");
@@ -82,7 +84,7 @@ public class PromoterFrame extends JFrame {
         JPanel actionPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 10, 12));
         actionPanel.setBackground(WHITE);
         actionPanel.setBorder(BorderFactory.createLineBorder(BORDER_GRAY));
-        actionPanel.setBounds(25, 20, 1185, 65);
+        actionPanel.setBounds(30, 20, 1145, 65);
         main.add(actionPanel);
 
         JButton btnList = createDarkButton("Listar");
@@ -92,6 +94,7 @@ public class PromoterFrame extends JFrame {
         JButton btnActivate = createPrimaryButton("Ativar");
         JButton btnRegister = createPrimaryButton("Cadastrar");
         JButton btnDetails = createDarkButton("Detalhes");
+        JButton btnExportExcel = createPrimaryButton("Exportar Excel");
 
         actionPanel.add(btnList);
         actionPanel.add(btnFilter);
@@ -100,11 +103,12 @@ public class PromoterFrame extends JFrame {
         actionPanel.add(btnActivate);
         actionPanel.add(btnRegister);
         actionPanel.add(btnDetails);
+        actionPanel.add(btnExportExcel);
 
         JPanel tablePanel = new JPanel(new BorderLayout());
         tablePanel.setBackground(WHITE);
         tablePanel.setBorder(BorderFactory.createLineBorder(BORDER_GRAY));
-        tablePanel.setBounds(30, 115, 1045, 430);
+        tablePanel.setBounds(30, 115, 1145, 430);
         main.add(tablePanel);
 
         JPanel tableHeader = new JPanel(new BorderLayout());
@@ -123,11 +127,14 @@ public class PromoterFrame extends JFrame {
 
         tablePanel.add(tableHeader, BorderLayout.NORTH);
 
-        String[] columns = {"ID", "Nome", "CPF", "Telefone", "Tipo", "Salário", "Status", "Editar"};
+        String[] columns = {
+                "ID", "Nome", "CPF", "Telefone", "UF", "Cidade",
+                "Tipo", "Salário", "Status", "Editar"
+        };
 
         tableModel = new DefaultTableModel(columns, 0) {
             public boolean isCellEditable(int r, int c) {
-                return c == 7;
+                return c == 9;
             }
         };
 
@@ -141,6 +148,16 @@ public class PromoterFrame extends JFrame {
         table.getColumnModel().getColumn(0).setMaxWidth(0);
         table.getColumnModel().getColumn(0).setWidth(0);
 
+        table.getColumnModel().getColumn(1).setPreferredWidth(210);
+        table.getColumnModel().getColumn(2).setPreferredWidth(120);
+        table.getColumnModel().getColumn(3).setPreferredWidth(140);
+        table.getColumnModel().getColumn(4).setPreferredWidth(50);
+        table.getColumnModel().getColumn(5).setPreferredWidth(145);
+        table.getColumnModel().getColumn(6).setPreferredWidth(80);
+        table.getColumnModel().getColumn(7).setPreferredWidth(110);
+        table.getColumnModel().getColumn(8).setPreferredWidth(90);
+        table.getColumnModel().getColumn(9).setPreferredWidth(90);
+
         JScrollPane scroll = new JScrollPane(table);
         scroll.setBorder(null);
         scroll.getViewport().setBackground(WHITE);
@@ -151,13 +168,13 @@ public class PromoterFrame extends JFrame {
         JPanel infoPanel = new JPanel(null);
         infoPanel.setBackground(WHITE);
         infoPanel.setBorder(BorderFactory.createLineBorder(BORDER_GRAY));
-        infoPanel.setBounds(30, 565, 1045, 55);
+        infoPanel.setBounds(30, 565, 1145, 55);
         main.add(infoPanel);
 
-        JLabel infoText = new JLabel("Dica: use Buscar para localizar rapidamente pelo nome. Use o botão ✏️ para editar os dados do promotor.");
+        JLabel infoText = new JLabel("Dica: use Buscar para localizar rapidamente pelo nome. Use o botão Editar para alterar os dados do promotor.");
         infoText.setForeground(TEXT_GRAY);
         infoText.setFont(new Font("Segoe UI", Font.PLAIN, 13));
-        infoText.setBounds(18, 15, 900, 25);
+        infoText.setBounds(18, 15, 950, 25);
         infoPanel.add(infoText);
 
         btnList.addActionListener(e -> loadPromoters());
@@ -167,6 +184,7 @@ public class PromoterFrame extends JFrame {
         btnActivate.addActionListener(e -> actionActivate());
         btnRegister.addActionListener(e -> openRegisterDialog());
         btnDetails.addActionListener(e -> showPromoterDetails());
+        btnExportExcel.addActionListener(e -> exportExcel());
 
         return main;
     }
@@ -193,13 +211,16 @@ public class PromoterFrame extends JFrame {
     private void openFilterDialog() {
         JComboBox<String> typeBox = new JComboBox<>(new String[]{"TODOS", "CLT", "MEI", "FERISTA"});
         JComboBox<String> statusBox = new JComboBox<>(new String[]{"TODOS", "ATIVO", "INATIVO"});
+        JComboBox<String> ufBox = new JComboBox<>(new String[]{"TODOS", "MA", "PI", "CE", "RN", "PB", "PE", "AL", "SE", "BA"});
 
         styleComboBox(typeBox);
         styleComboBox(statusBox);
+        styleComboBox(ufBox);
 
         Object[] fields = {
                 "Tipo:", typeBox,
-                "Status:", statusBox
+                "Status:", statusBox,
+                "UF:", ufBox
         };
 
         int option = JOptionPane.showConfirmDialog(
@@ -213,22 +234,20 @@ public class PromoterFrame extends JFrame {
 
         String type = typeBox.getSelectedItem().toString();
         String status = statusBox.getSelectedItem().toString();
+        String uf = ufBox.getSelectedItem().toString();
 
         List<Promoter> list = promoterController.getAll();
 
         List<Promoter> filtered = list.stream()
-                .filter(p -> {
-                    boolean matchType = type.equals("TODOS") || p.getType().equalsIgnoreCase(type);
-                    boolean matchStatus = status.equals("TODOS")
-                            || (status.equals("ATIVO") && p.isActive())
-                            || (status.equals("INATIVO") && !p.isActive());
-
-                    return matchType && matchStatus;
-                })
+                .filter(p -> type.equals("TODOS") || (p.getType() != null && p.getType().equalsIgnoreCase(type)))
+                .filter(p -> status.equals("TODOS")
+                        || (status.equals("ATIVO") && p.isActive())
+                        || (status.equals("INATIVO") && !p.isActive()))
+                .filter(p -> uf.equals("TODOS") || (p.getUf() != null && p.getUf().equalsIgnoreCase(uf)))
                 .toList();
 
         fillTable(filtered);
-        statusLabel.setText("Filtro aplicado: " + type + " / " + status);
+        statusLabel.setText("Filtro aplicado: " + type + " / " + status + " / " + uf);
     }
 
     private void searchByName() {
@@ -303,9 +322,13 @@ public class PromoterFrame extends JFrame {
         );
 
         if (confirm == JOptionPane.YES_OPTION) {
-            promoterController.inactivate(id);
-            loadPromoters();
-            showSuccess("Promotor inativado com sucesso!");
+            try {
+                promoterController.inactivate(id);
+                loadPromoters();
+                showSuccess("Promotor inativado com sucesso!");
+            } catch (Exception e) {
+                showError(e.getMessage());
+            }
         }
     }
 
@@ -325,9 +348,13 @@ public class PromoterFrame extends JFrame {
         );
 
         if (confirm == JOptionPane.YES_OPTION) {
-            promoterController.activate(id);
-            loadPromoters();
-            showSuccess("Promotor ativado com sucesso!");
+            try {
+                promoterController.activate(id);
+                loadPromoters();
+                showSuccess("Promotor ativado com sucesso!");
+            } catch (Exception e) {
+                showError(e.getMessage());
+            }
         }
     }
 
@@ -340,9 +367,18 @@ public class PromoterFrame extends JFrame {
         }
 
         JTextField name = createTextField(p.getName());
+
         JFormattedTextField phone = createPhoneField();
         phone.setText(formatPhone(p.getPhone()));
-        JTextField pix = createTextField(p.getPix());
+
+        JComboBox<String> ufBox = createUfComboBox();
+
+        if (p.getUf() != null && !p.getUf().isBlank()) {
+            ufBox.setSelectedItem(p.getUf());
+        }
+
+        JTextField city = createTextField(formatField(p.getCity()));
+        JTextField pix = createTextField(formatField(p.getPix()));
         JTextField salary = createTextField(moneyForInput(p.getSalary()));
 
         JComboBox<String> pixType = new JComboBox<>(new String[]{
@@ -358,6 +394,8 @@ public class PromoterFrame extends JFrame {
         Object[] fields = {
                 "Nome:", name,
                 "Telefone:", phone,
+                "UF:", ufBox,
+                "Cidade:", city,
                 "PIX:", pix,
                 "Tipo do PIX:", pixType,
                 "Salário:", salary,
@@ -373,8 +411,10 @@ public class PromoterFrame extends JFrame {
 
         if (option == JOptionPane.OK_OPTION) {
             try {
-                if (name.getText().trim().isBlank() || phone.getText().trim().isBlank()) {
-                    showWarning("Nome e telefone são obrigatórios.");
+                if (name.getText().trim().isBlank()
+                        || cleanPhone(phone.getText()).isBlank()
+                        || city.getText().trim().isBlank()) {
+                    showWarning("Nome, telefone, UF e cidade são obrigatórios.");
                     return;
                 }
 
@@ -382,6 +422,8 @@ public class PromoterFrame extends JFrame {
                         id,
                         name.getText().trim(),
                         cleanPhone(phone.getText()),
+                        ufBox.getSelectedItem().toString(),
+                        city.getText().trim(),
                         pix.getText().trim(),
                         pixType.getSelectedItem().toString(),
                         parseMoney(salary.getText()),
@@ -401,6 +443,10 @@ public class PromoterFrame extends JFrame {
         JTextField name = createTextField();
         JTextField cpf = createTextField();
         JFormattedTextField phone = createPhoneField();
+
+        JComboBox<String> ufBox = createUfComboBox();
+        JTextField city = createTextField();
+
         JTextField pix = createTextField();
         JTextField salary = createTextField();
 
@@ -421,6 +467,8 @@ public class PromoterFrame extends JFrame {
                 "Nome:", name,
                 "CPF:", cpf,
                 "Telefone:", phone,
+                "UF:", ufBox,
+                "Cidade:", city,
                 "PIX:", pix,
                 "Tipo do PIX:", pixType,
                 "Nascimento:", birthSpinner,
@@ -439,12 +487,13 @@ public class PromoterFrame extends JFrame {
             try {
                 if (name.getText().trim().isBlank()
                         || cpf.getText().trim().isBlank()
-                        || phone.getText().trim().isBlank()) {
-                    showWarning("Nome, CPF e telefone são obrigatórios.");
+                        || cleanPhone(phone.getText()).isBlank()
+                        || city.getText().trim().isBlank()) {
+                    showWarning("Nome, CPF, telefone, UF e cidade são obrigatórios.");
                     return;
                 }
 
-                java.util.Date birthDate = (java.util.Date) birthSpinner.getValue();
+                Date birthDate = (Date) birthSpinner.getValue();
 
                 LocalDate dateBirth = birthDate.toInstant()
                         .atZone(java.time.ZoneId.systemDefault())
@@ -454,6 +503,8 @@ public class PromoterFrame extends JFrame {
                         name.getText().trim(),
                         cpf.getText().trim(),
                         cleanPhone(phone.getText()),
+                        ufBox.getSelectedItem().toString(),
+                        city.getText().trim(),
                         pix.getText().trim(),
                         pixType.getSelectedItem().toString(),
                         dateBirth,
@@ -486,11 +537,52 @@ public class PromoterFrame extends JFrame {
                 p.getName(),
                 formatCpf(p.getCpf()),
                 formatPhone(p.getPhone()),
+                formatField(p.getUf()),
+                formatField(p.getCity()),
                 p.getType(),
                 formatMoney(p.getSalary()),
                 p.isActive() ? "ATIVO" : "INATIVO",
-                "✏️"
+                "Editar"
         });
+    }
+
+    private void exportExcel() {
+        try {
+            List<Promoter> promoters = getCurrentTablePromoters();
+
+            if (promoters.isEmpty()) {
+                showWarning("Nenhum promotor para exportar.");
+                return;
+            }
+
+            String path = util.FileSaveDialog.chooseXlsxPath(this, "promotores.xlsx");
+
+            if (path == null) {
+                return;
+            }
+
+            util.ExcelGenerator.generatePromoters(promoters, path);
+
+            showSuccess("Excel de promotores gerado com sucesso!");
+
+        } catch (Exception e) {
+            showError("Erro ao exportar promotores: " + e.getMessage());
+        }
+    }
+
+    private List<Promoter> getCurrentTablePromoters() {
+        List<Promoter> promoters = new ArrayList<>();
+
+        for (int row = 0; row < tableModel.getRowCount(); row++) {
+            int id = (int) tableModel.getValueAt(row, 0);
+            Promoter promoter = promoterController.findById(id);
+
+            if (promoter != null) {
+                promoters.add(promoter);
+            }
+        }
+
+        return promoters;
     }
 
     private void showPromoterDetails() {
@@ -516,7 +608,7 @@ public class PromoterFrame extends JFrame {
         title.setFont(new Font("Segoe UI", Font.BOLD, 20));
         title.setForeground(BLACK);
 
-        JLabel subtitle = new JLabel(p.getType() + " • " + (p.isActive() ? "ATIVO" : "INATIVO"));
+        JLabel subtitle = new JLabel(formatField(p.getType()) + " - " + (p.isActive() ? "ATIVO" : "INATIVO"));
         subtitle.setFont(new Font("Segoe UI", Font.PLAIN, 13));
         subtitle.setForeground(TEXT_GRAY);
 
@@ -529,11 +621,14 @@ public class PromoterFrame extends JFrame {
         info.setBackground(Color.WHITE);
 
         addDetail(info, "CPF", formatCpf(p.getCpf()));
-        addDetail(info, "Telefone", p.getPhone());
+        addDetail(info, "Telefone", formatPhone(p.getPhone()));
+        addDetail(info, "UF", formatField(p.getUf()));
+        addDetail(info, "Cidade", formatField(p.getCity()));
+        addDetail(info, "Nascimento", formatDate(p.getDateBirth()));
         addDetail(info, "PIX", p.getPix() == null || p.getPix().isBlank() ? "Não informado" : p.getPix());
         addDetail(info, "Tipo do PIX", p.getPixType() == null || p.getPixType().isBlank() ? "Não informado" : p.getPixType());
         addDetail(info, "Salário", formatMoney(p.getSalary()));
-        addDetail(info, "Tipo", p.getType());
+        addDetail(info, "Tipo", formatField(p.getType()));
         addDetail(info, "Status", p.isActive() ? "ATIVO" : "INATIVO");
 
         panel.add(header, BorderLayout.NORTH);
@@ -559,7 +654,7 @@ public class PromoterFrame extends JFrame {
         title.setFont(new Font("Segoe UI", Font.BOLD, 12));
         title.setForeground(TEXT_GRAY);
 
-        JLabel content = new JLabel(value);
+        JLabel content = new JLabel(value == null || value.isBlank() ? "Não informado" : value);
         content.setFont(new Font("Segoe UI", Font.PLAIN, 14));
         content.setForeground(BLACK);
 
@@ -620,20 +715,29 @@ public class PromoterFrame extends JFrame {
     }
 
     private String formatCpf(String cpf) {
-        if (cpf == null || cpf.length() != 11) return cpf;
+        if (cpf == null || cpf.isBlank()) {
+            return "";
+        }
 
-        return cpf.substring(0, 3) + "."
-                + cpf.substring(3, 6) + "."
-                + cpf.substring(6, 9) + "-"
-                + cpf.substring(9);
+        String clean = cpf.replaceAll("[^0-9]", "");
+
+        if (clean.length() != 11) {
+            return cpf;
+        }
+
+        return clean.substring(0, 3) + "."
+                + clean.substring(3, 6) + "."
+                + clean.substring(6, 9) + "-"
+                + clean.substring(9);
     }
 
     private String formatMoney(BigDecimal value) {
         if (value == null) {
-            return moneyFormatter.format(BigDecimal.ZERO);
+            return moneyFormatter.format(BigDecimal.ZERO).replace('\u00A0', ' ');
         }
 
-        return moneyFormatter.format(value.setScale(2, RoundingMode.HALF_UP));
+        return moneyFormatter.format(value.setScale(2, RoundingMode.HALF_UP))
+                .replace('\u00A0', ' ');
     }
 
     private BigDecimal parseMoney(String value) {
@@ -683,6 +787,22 @@ public class PromoterFrame extends JFrame {
                 .replace(".", ",");
     }
 
+    private String formatField(String value) {
+        if (value == null || value.isBlank()) {
+            return "";
+        }
+
+        return value;
+    }
+
+    private String formatDate(LocalDate date) {
+        if (date == null) {
+            return "";
+        }
+
+        return date.format(java.time.format.DateTimeFormatter.ofPattern("dd/MM/yyyy"));
+    }
+
     private JTextField createTextField() {
         return createTextField("");
     }
@@ -711,6 +831,15 @@ public class PromoterFrame extends JFrame {
                 BorderFactory.createEmptyBorder(5, 8, 5, 8)
         ));
         return field;
+    }
+
+    private JComboBox<String> createUfComboBox() {
+        JComboBox<String> ufBox = new JComboBox<>(new String[]{
+                "MA", "PI", "CE", "RN", "PB", "PE", "AL", "SE", "BA"
+        });
+
+        styleComboBox(ufBox);
+        return ufBox;
     }
 
     private void styleComboBox(JComboBox<?> comboBox) {
@@ -753,7 +882,7 @@ public class PromoterFrame extends JFrame {
 
     private JButton baseButton(String text) {
         JButton button = new JButton(text);
-        button.setPreferredSize(new Dimension(120, 38));
+        button.setPreferredSize(new Dimension(130, 38));
         button.setFocusPainted(false);
         button.setFont(new Font("Segoe UI", Font.BOLD, 13));
         button.setCursor(new Cursor(Cursor.HAND_CURSOR));
@@ -793,8 +922,8 @@ public class PromoterFrame extends JFrame {
     class ButtonRenderer extends JButton implements javax.swing.table.TableCellRenderer {
 
         public ButtonRenderer() {
-            setText("✏️");
-            setFont(new Font("Segoe UI Emoji", Font.PLAIN, 14));
+            setText("Editar");
+            setFont(new Font("Segoe UI", Font.BOLD, 12));
             setFocusPainted(false);
             setBorderPainted(false);
             setBackground(WHITE);
@@ -824,8 +953,8 @@ public class PromoterFrame extends JFrame {
             super(checkBox);
             this.frame = frame;
 
-            button = new JButton("✏️");
-            button.setFont(new Font("Segoe UI Emoji", Font.PLAIN, 14));
+            button = new JButton("Editar");
+            button.setFont(new Font("Segoe UI", Font.BOLD, 12));
             button.setFocusPainted(false);
             button.setBorderPainted(false);
             button.setBackground(ORANGE);
@@ -852,7 +981,7 @@ public class PromoterFrame extends JFrame {
         }
 
         public Object getCellEditorValue() {
-            return "✏️";
+            return "Editar";
         }
     }
 }

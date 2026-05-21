@@ -4,6 +4,7 @@ import model.Client;
 import model.InvoiceView;
 import model.PayrollLine;
 import model.PromoterPaymentData;
+import model.Promoter;
 
 import org.apache.poi.ss.usermodel.*;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
@@ -20,6 +21,80 @@ import java.util.Locale;
 public class ExcelGenerator {
 
     private static final Locale BR_LOCALE = new Locale("pt", "BR");
+
+    public static void generatePromoters(List<Promoter> promoters, String path) {
+        try (Workbook workbook = new XSSFWorkbook()) {
+
+            Sheet sheet = workbook.createSheet("Promotores");
+
+            DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd/MM/yyyy");
+            CellStyle headerStyle = createHeaderStyle(workbook);
+            CellStyle moneyStyle = createMoneyStyle(workbook);
+
+            String[] columns = {
+                    "Nome",
+                    "CPF",
+                    "Telefone",
+                    "UF",
+                    "Cidade",
+                    "Tipo",
+                    "Salário",
+                    "PIX",
+                    "Tipo PIX",
+                    "Nascimento",
+                    "Status"
+            };
+
+            Row header = sheet.createRow(0);
+
+            for (int i = 0; i < columns.length; i++) {
+                Cell cell = header.createCell(i);
+                cell.setCellValue(columns[i]);
+                cell.setCellStyle(headerStyle);
+            }
+
+            int rowNum = 1;
+
+            for (Promoter promoter : promoters) {
+                Row row = sheet.createRow(rowNum++);
+
+                row.createCell(0).setCellValue(nullToBlank(promoter.getName()));
+                row.createCell(1).setCellValue(formatDocument(promoter.getCpf()));
+                row.createCell(2).setCellValue(formatPhone(promoter.getPhone()));
+                row.createCell(3).setCellValue(nullToBlank(promoter.getUf()));
+                row.createCell(4).setCellValue(nullToBlank(promoter.getCity()));
+                row.createCell(5).setCellValue(nullToBlank(promoter.getType()));
+
+                Cell salaryCell = row.createCell(6);
+                salaryCell.setCellValue(promoter.getSalary() != null ? promoter.getSalary().doubleValue() : 0);
+                salaryCell.setCellStyle(moneyStyle);
+
+                row.createCell(7).setCellValue(nullToBlank(promoter.getPix()));
+                row.createCell(8).setCellValue(nullToBlank(promoter.getPixType()));
+                row.createCell(9).setCellValue(
+                        promoter.getDateBirth() != null ? promoter.getDateBirth().format(formatter) : ""
+                );
+                row.createCell(10).setCellValue(promoter.isActive() ? "ATIVO" : "INATIVO");
+            }
+
+            sheet.setAutoFilter(new org.apache.poi.ss.util.CellRangeAddress(
+                    0,
+                    Math.max(0, rowNum - 1),
+                    0,
+                    columns.length - 1
+            ));
+
+            sheet.createFreezePane(0, 1);
+            autoSizeColumns(sheet, columns.length);
+
+            try (FileOutputStream fileOut = new FileOutputStream(path)) {
+                workbook.write(fileOut);
+            }
+
+        } catch (Exception e) {
+            throw new RuntimeException("Erro ao gerar Excel de promotores", e);
+        }
+    }
 
     public static void generateInvoices(List<InvoiceView> invoices, String path) {
         try (Workbook workbook = new XSSFWorkbook()) {
@@ -505,6 +580,31 @@ public class ExcelGenerator {
 
         return moneyFormat.format(value.setScale(2, RoundingMode.HALF_UP))
                 .replace('\u00A0', ' ');
+    }
+
+    private static String formatPhone(String phone) {
+        if (phone == null || phone.isBlank()) {
+            return "";
+        }
+
+        String clean = onlyNumbers(phone);
+
+        if (clean.length() == 13 && clean.startsWith("55")) {
+            return "+" + clean.substring(0, 2) +
+                    " (" + clean.substring(2, 4) + ")" +
+                    clean.substring(4, 9) +
+                    "-" +
+                    clean.substring(9);
+        }
+
+        if (clean.length() == 11) {
+            return "+55 (" + clean.substring(0, 2) + ")" +
+                    clean.substring(2, 7) +
+                    "-" +
+                    clean.substring(7);
+        }
+
+        return phone;
     }
 
     private static String onlyNumbers(String value) {

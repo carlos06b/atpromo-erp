@@ -336,13 +336,18 @@ public class Main {
         System.out.print("Telefone: ");
         String phone = sc.nextLine().trim();
 
+        String uf = readNortheastUf(sc);
+
+        System.out.print("Cidade: ");
+        String city = sc.nextLine().trim();
+
         System.out.print("PIX: ");
         String pix = sc.nextLine().trim();
 
         String pixType = readPixType(sc);
 
-        if (name.isBlank() || cpf.isBlank() || phone.isBlank()) {
-            printError("Nome, CPF e telefone são obrigatórios.");
+        if (name.isBlank() || cpf.isBlank() || phone.isBlank() || city.isBlank()) {
+            printError("Nome, CPF, telefone, UF e cidade são obrigatórios.");
             return;
         }
 
@@ -350,7 +355,7 @@ public class Main {
         BigDecimal salary = readPositiveBigDecimal(sc, "Salário: ");
         String type = readPromoterType(sc);
 
-        controller.register(name, cpf, phone, pix, pixType, dateBirth, salary, type);
+        controller.register(name, cpf, phone, uf, city, pix, pixType, dateBirth, salary, type);
     }
 
     public static void updatePromoter(Scanner sc, PromoterController controller) {
@@ -362,20 +367,25 @@ public class Main {
         System.out.print("Novo telefone: ");
         String phone = sc.nextLine().trim();
 
+        String uf = readNortheastUf(sc);
+
+        System.out.print("Nova cidade: ");
+        String city = sc.nextLine().trim();
+
         System.out.print("Novo PIX: ");
         String pix = sc.nextLine().trim();
 
         String pixType = readPixType(sc);
 
-        if (name.isBlank() || phone.isBlank()) {
-            printError("Nome e telefone são obrigatórios.");
+        if (name.isBlank() || phone.isBlank() || city.isBlank()) {
+            printError("Nome, telefone, UF e cidade são obrigatórios.");
             return;
         }
 
         BigDecimal salary = readPositiveBigDecimal(sc, "Novo salário: ");
         String type = readPromoterType(sc);
 
-        controller.update(id, name, phone, pix, pixType, salary, type);
+        controller.update(id, name, phone, uf, city, pix, pixType, salary, type);
     }
 
     public static void registerFixedExpense(Scanner sc, FixedExpenseController controller) {
@@ -600,6 +610,27 @@ public class Main {
         }
     }
 
+    public static String readNortheastUf(Scanner sc) {
+        while (true) {
+            System.out.print("UF (MA/PI/CE/RN/PB/PE/AL/SE/BA): ");
+            String uf = sc.nextLine().trim().toUpperCase();
+
+            if (uf.equals("MA")
+                    || uf.equals("PI")
+                    || uf.equals("CE")
+                    || uf.equals("RN")
+                    || uf.equals("PB")
+                    || uf.equals("PE")
+                    || uf.equals("AL")
+                    || uf.equals("SE")
+                    || uf.equals("BA")) {
+                return uf;
+            }
+
+            printError("UF inválida. Use uma UF do Nordeste.");
+        }
+    }
+
     public static String readType(Scanner sc, String message) {
         while (true) {
             System.out.print(message);
@@ -646,14 +677,14 @@ public class Main {
     }
 
     public static void printSuccess(String message) {
-        System.out.println("✔ " + message);
+        System.out.println("OK - " + message);
     }
 
     public static void printError(String message) {
-        System.out.println("✘ " + message);
+        System.out.println("ERRO - " + message);
     }
 
     public static void printInfo(String message) {
-        System.out.println("• " + message);
+        System.out.println("- " + message);
     }
 }
