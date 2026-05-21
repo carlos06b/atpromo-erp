@@ -124,7 +124,7 @@ public class ClientFrame extends JFrame {
 
     private void createTable(JPanel panel) {
         tableModel = new DefaultTableModel(
-                new Object[]{"ID", "Indústria", "CNPJ", "Telefone", "Email", "Vínculo", "Status"}, 0
+                new Object[]{"ID", "Nome Fantasia", "CNPJ", "Telefone", "Email", "Vínculo", "Status"}, 0
         ) {
             @Override
             public boolean isCellEditable(int row, int column) {
@@ -160,7 +160,6 @@ public class ClientFrame extends JFrame {
     }
 
     private void createActionButtons(JPanel panel) {
-
         JButton btnEdit = createSecondaryButton("Editar");
         btnEdit.setBounds(225, 525, 100, 36);
         btnEdit.addActionListener(e -> openEditDialog());
@@ -193,15 +192,18 @@ public class ClientFrame extends JFrame {
     }
 
     private void openRegisterDialog() {
-        JTextField txtName = new JTextField();
+        JTextField txtCorporateName = new JTextField();
+        JTextField txtFantasyName = new JTextField();
         JTextField txtCnpj = new JTextField();
         JTextField txtPhone = new JTextField();
         JTextField txtEmail = new JTextField();
         JComboBox<String> cbCompanyLink = new JComboBox<>(new String[]{"AT", "TEJO"});
 
         JPanel panel = new JPanel(new GridLayout(0, 1, 5, 5));
-        panel.add(new JLabel("Nome da indústria:"));
-        panel.add(txtName);
+        panel.add(new JLabel("Razão social:"));
+        panel.add(txtCorporateName);
+        panel.add(new JLabel("Nome fantasia:"));
+        panel.add(txtFantasyName);
         panel.add(new JLabel("CNPJ:"));
         panel.add(txtCnpj);
         panel.add(new JLabel("Telefone:"));
@@ -222,7 +224,8 @@ public class ClientFrame extends JFrame {
         if (result == JOptionPane.OK_OPTION) {
             try {
                 clientController.registerClient(
-                        txtName.getText(),
+                        txtCorporateName.getText(),
+                        txtFantasyName.getText(),
                         txtCnpj.getText(),
                         txtPhone.getText(),
                         txtEmail.getText(),
@@ -254,7 +257,7 @@ public class ClientFrame extends JFrame {
         List<Client> clients = clientController.listAll();
 
         List<Client> filtered = clients.stream()
-                .filter(c -> search.isEmpty() || c.getName().toLowerCase().contains(search))
+                .filter(c -> search.isEmpty() || matchesClientSearch(c, search))
                 .filter(c -> status.equals("Todos")
                         || (status.equals("Ativos") && c.isActive())
                         || (status.equals("Inativos") && !c.isActive()))
@@ -262,6 +265,16 @@ public class ClientFrame extends JFrame {
                 .toList();
 
         fillTable(filtered);
+    }
+
+    private boolean matchesClientSearch(Client client, String search) {
+        return containsIgnoreCase(client.getName(), search)
+                || containsIgnoreCase(client.getCorporateName(), search)
+                || containsIgnoreCase(client.getCnpj(), search);
+    }
+
+    private boolean containsIgnoreCase(String value, String search) {
+        return value != null && value.toLowerCase().contains(search);
     }
 
     private void resetFilters() {
@@ -312,7 +325,8 @@ public class ClientFrame extends JFrame {
         try {
             Client client = clientController.findById(id);
 
-            JTextField txtName = new JTextField(formatField(client.getName()));
+            JTextField txtCorporateName = new JTextField(formatField(client.getCorporateName()));
+            JTextField txtFantasyName = new JTextField(formatField(client.getName()));
             JTextField txtCnpj = new JTextField(formatField(client.getCnpj()));
             JTextField txtPhone = new JTextField(formatField(client.getPhone()));
             JTextField txtEmail = new JTextField(formatField(client.getEmail()));
@@ -324,8 +338,10 @@ public class ClientFrame extends JFrame {
             cbStatus.setSelectedItem(client.isActive() ? "Ativo" : "Inativo");
 
             JPanel panel = new JPanel(new GridLayout(0, 1, 5, 5));
-            panel.add(new JLabel("Nome da indústria:"));
-            panel.add(txtName);
+            panel.add(new JLabel("Razão social:"));
+            panel.add(txtCorporateName);
+            panel.add(new JLabel("Nome fantasia:"));
+            panel.add(txtFantasyName);
             panel.add(new JLabel("CNPJ:"));
             panel.add(txtCnpj);
             panel.add(new JLabel("Telefone:"));
@@ -348,7 +364,8 @@ public class ClientFrame extends JFrame {
             if (result == JOptionPane.OK_OPTION) {
                 clientController.updateClient(
                         id,
-                        txtName.getText(),
+                        txtCorporateName.getText(),
+                        txtFantasyName.getText(),
                         txtCnpj.getText(),
                         txtPhone.getText(),
                         txtEmail.getText(),
@@ -384,7 +401,7 @@ public class ClientFrame extends JFrame {
             Client client = clientController.findById(id);
 
             JDialog dialog = new JDialog(this, "Detalhes da Indústria", true);
-            dialog.setSize(560, 460);
+            dialog.setSize(560, 520);
             dialog.setLocationRelativeTo(this);
             dialog.setResizable(false);
             dialog.setLayout(new BorderLayout());
@@ -409,13 +426,13 @@ public class ClientFrame extends JFrame {
         JLabel title = new JLabel(formatDetail(client.getName()));
         title.setForeground(WHITE);
         title.setFont(new Font("Segoe UI", Font.BOLD, 24));
-        title.setBounds(28, 20, 360, 32);
+        title.setBounds(28, 20, 365, 32);
         header.add(title);
 
-        JLabel subtitle = new JLabel("Cadastro de cliente / indústria");
+        JLabel subtitle = new JLabel(formatDetail(client.getCorporateName()));
         subtitle.setForeground(new Color(210, 210, 210));
         subtitle.setFont(new Font("Segoe UI", Font.PLAIN, 14));
-        subtitle.setBounds(30, 55, 300, 24);
+        subtitle.setBounds(30, 55, 370, 24);
         header.add(subtitle);
 
         JLabel status = new JLabel(client.isActive() ? "ATIVO" : "INATIVO", SwingConstants.CENTER);
@@ -444,8 +461,10 @@ public class ClientFrame extends JFrame {
                 BorderFactory.createLineBorder(new Color(225, 225, 225)),
                 BorderFactory.createEmptyBorder(18, 22, 18, 22)
         ));
-        card.setBounds(28, 24, 485, 230);
+        card.setBounds(28, 24, 485, 300);
 
+        card.add(createDetailLine("Razão Social", client.getCorporateName()));
+        card.add(createDetailLine("Nome Fantasia", client.getName()));
         card.add(createDetailLine("CNPJ", client.getCnpj()));
         card.add(createDetailLine("Telefone", client.getPhone()));
         card.add(createDetailLine("Email", client.getEmail()));
@@ -464,7 +483,7 @@ public class ClientFrame extends JFrame {
         JLabel labelText = new JLabel(label);
         labelText.setForeground(new Color(110, 110, 110));
         labelText.setFont(new Font("Segoe UI", Font.BOLD, 12));
-        labelText.setPreferredSize(new Dimension(110, 28));
+        labelText.setPreferredSize(new Dimension(120, 28));
 
         JLabel valueText = new JLabel(formatDetail(value));
         valueText.setForeground(BLACK);
@@ -556,7 +575,7 @@ public class ClientFrame extends JFrame {
         List<Client> clients = clientController.listAll();
 
         return clients.stream()
-                .filter(c -> search.isEmpty() || c.getName().toLowerCase().contains(search))
+                .filter(c -> search.isEmpty() || matchesClientSearch(c, search))
                 .filter(c -> status.equals("Todos")
                         || (status.equals("Ativos") && c.isActive())
                         || (status.equals("Inativos") && !c.isActive()))

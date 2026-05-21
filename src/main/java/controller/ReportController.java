@@ -218,8 +218,6 @@ public class ReportController {
         appendMetric(report, "Adiantamento", promoterTotals.getOrDefault("ADIANTAMENTO", BigDecimal.ZERO));
         appendMetric(report, "Reembolso", promoterTotals.getOrDefault("REEMBOLSO", BigDecimal.ZERO));
         appendMetric(report, "Correção de pagamento", promoterTotals.getOrDefault("CORRECAO_PAGAMENTO", BigDecimal.ZERO));
-        appendMetric(report, "Atestado", promoterTotals.getOrDefault("ATESTADO", BigDecimal.ZERO));
-        appendMetric(report, "Alteração de dados", promoterTotals.getOrDefault("ALTERACAO_DADOS", BigDecimal.ZERO));
         appendMetric(report, "Outros", promoterTotals.getOrDefault("OUTROS", BigDecimal.ZERO));
         appendMetric(report, "Desconto", promoterTotals.getOrDefault("DESCONTO", BigDecimal.ZERO));
 

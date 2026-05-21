@@ -13,17 +13,18 @@ public class ClientController {
         this.clientDAO = new ClientDAO();
     }
 
-    public void registerClient(String name, String cnpj, String phone, String email, String companyLink) {
-        if (name == null || name.trim().isEmpty()) {
-            throw new RuntimeException("O nome da indústria é obrigatório.");
+    public void registerClient(String corporateName, String fantasyName, String cnpj, String phone, String email, String companyLink) {
+        if (corporateName == null || corporateName.trim().isEmpty()) {
+            throw new RuntimeException("A razão social é obrigatória.");
         }
 
-        if (companyLink == null || companyLink.trim().isEmpty()) {
-            throw new RuntimeException("Selecione o vínculo da indústria.");
+        if (fantasyName == null || fantasyName.trim().isEmpty()) {
+            throw new RuntimeException("O nome fantasia é obrigatório.");
         }
 
         Client client = new Client();
-        client.setName(name.trim());
+        client.setCorporateName(corporateName.trim());
+        client.setName(fantasyName.trim());
         client.setCnpj(formatNullable(cnpj));
         client.setPhone(formatNullable(phone));
         client.setEmail(formatNullable(email));
@@ -59,9 +60,14 @@ public class ClientController {
         return clientDAO.searchByName(name.trim());
     }
 
-    public void updateClient(int id, String name, String cnpj, String phone, String email, String companyLink, boolean active) {
-        if (name == null || name.trim().isEmpty()) {
-            throw new RuntimeException("O nome da indústria é obrigatório.");
+    public void updateClient(int id, String corporateName, String fantasyName, String cnpj,
+                             String phone, String email, String companyLink, boolean active) {
+        if (corporateName == null || corporateName.trim().isEmpty()) {
+            throw new RuntimeException("A razão social é obrigatória.");
+        }
+
+        if (fantasyName == null || fantasyName.trim().isEmpty()) {
+            throw new RuntimeException("O nome fantasia é obrigatório.");
         }
 
         if (companyLink == null || companyLink.trim().isEmpty()) {
@@ -70,7 +76,8 @@ public class ClientController {
 
         Client client = new Client();
         client.setId(id);
-        client.setName(name.trim());
+        client.setCorporateName(corporateName.trim());
+        client.setName(fantasyName.trim());
         client.setCnpj(formatNullable(cnpj));
         client.setPhone(formatNullable(phone));
         client.setEmail(formatNullable(email));

@@ -36,8 +36,6 @@ public class RequestController {
         TYPE_LABELS.put("ADIANTAMENTO", "Adiantamento");
         TYPE_LABELS.put("REEMBOLSO", "Reembolso");
         TYPE_LABELS.put("CORRECAO_PAGAMENTO", "Correção de Pagamento");
-        TYPE_LABELS.put("ATESTADO", "Atestado");
-        TYPE_LABELS.put("ALTERACAO_DADOS", "Alteração de Dados");
         TYPE_LABELS.put("OUTROS", "Outros");
     }
 

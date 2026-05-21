@@ -11,19 +11,20 @@ public class ClientDAO {
 
     public void save(Client client) {
         String sql = """
-                INSERT INTO client (name, cnpj, phone, email, active, company_link)
-                                      VALUES (?, ?, ?, ?, ?, ?)
-                """;
+        INSERT INTO client (corporate_name, name, cnpj, phone, email, active, company_link)
+        VALUES (?, ?, ?, ?, ?, ?, ?)
+        """;
 
         try (Connection conn = ConnectionFactory.getConnection();
              PreparedStatement stmt = conn.prepareStatement(sql)) {
 
-            stmt.setString(1, client.getName());
-            stmt.setString(2, client.getCnpj());
-            stmt.setString(3, client.getPhone());
-            stmt.setString(4, client.getEmail());
-            stmt.setBoolean(5, client.isActive());
-            stmt.setString(6, client.getCompanyLink());
+            stmt.setString(1, client.getCorporateName());
+            stmt.setString(2, client.getName());
+            stmt.setString(3, client.getCnpj());
+            stmt.setString(4, client.getPhone());
+            stmt.setString(5, client.getEmail());
+            stmt.setBoolean(6, client.isActive());
+            stmt.setString(7, client.getCompanyLink());
 
             stmt.executeUpdate();
 
@@ -190,25 +191,27 @@ public class ClientDAO {
     public void update(Client client) {
         String sql = """
                 UPDATE client
-                            SET name = ?,
-                                cnpj = ?,
-                                phone = ?,
-                                email = ?,
-                                active = ?,
-                                company_link = ?
-                            WHERE id = ?
+                SET corporate_name = ?,
+                    name = ?,
+                    cnpj = ?,
+                    phone = ?,
+                    email = ?,
+                    active = ?,
+                    company_link = ?
+                WHERE id = ?
                 """;
 
         try (Connection conn = ConnectionFactory.getConnection();
              PreparedStatement stmt = conn.prepareStatement(sql)) {
 
-            stmt.setString(1, client.getName());
-            stmt.setString(2, client.getCnpj());
-            stmt.setString(3, client.getPhone());
-            stmt.setString(4, client.getEmail());
-            stmt.setBoolean(5, client.isActive());
-            stmt.setString(6, client.getCompanyLink());
-            stmt.setInt(7, client.getId());
+            stmt.setString(1, client.getCorporateName());
+            stmt.setString(2, client.getName());
+            stmt.setString(3, client.getCnpj());
+            stmt.setString(4, client.getPhone());
+            stmt.setString(5, client.getEmail());
+            stmt.setBoolean(6, client.isActive());
+            stmt.setString(7, client.getCompanyLink());
+            stmt.setInt(8, client.getId());
 
             stmt.executeUpdate();
 
@@ -258,6 +261,7 @@ public class ClientDAO {
 
         client.setId(rs.getInt("id"));
         client.setName(rs.getString("name"));
+        client.setCorporateName(rs.getString("corporate_name"));
         client.setCnpj(rs.getString("cnpj"));
         client.setPhone(rs.getString("phone"));
         client.setActive(rs.getBoolean("active"));

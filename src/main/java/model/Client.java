@@ -8,6 +8,7 @@ public class Client {
     private String email;
     private boolean active;
     private String companyLink;
+    private String corporateName;
 
     public Client() {
     }
@@ -29,6 +30,14 @@ public class Client {
         this.email = email;
         this.active = active;
         this.companyLink = companyLink;
+    }
+
+    public String getCorporateName() {
+        return corporateName;
+    }
+
+    public void setCorporateName(String corporateName) {
+        this.corporateName = corporateName;
     }
 
     public String getCompanyLink() {
