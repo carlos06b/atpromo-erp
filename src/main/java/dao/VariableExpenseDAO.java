@@ -15,10 +15,11 @@ public class VariableExpenseDAO {
 
     public void save(VariableExpense expense) {
         String sql = """
-                INSERT INTO variable_expense
-                (name, amount, date, status, payment_date, description)
-                VALUES (?, ?, ?, ?, ?, ?)
-                """;
+        INSERT INTO variable_expense
+        (name, amount, date, status, payment_date, description,
+         installment_group, installment_number, total_installments)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+        """;
 
         try (Connection conn = ConnectionFactory.getConnection();
              PreparedStatement stmt = conn.prepareStatement(sql)) {
@@ -35,6 +36,20 @@ public class VariableExpenseDAO {
             }
 
             stmt.setString(6, expense.getDescription());
+
+            stmt.setString(7, expense.getInstallmentGroup());
+
+            if (expense.getInstallmentNumber() != null) {
+                stmt.setInt(8, expense.getInstallmentNumber());
+            } else {
+                stmt.setNull(8, java.sql.Types.INTEGER);
+            }
+
+            if (expense.getTotalInstallments() != null) {
+                stmt.setInt(9, expense.getTotalInstallments());
+            } else {
+                stmt.setNull(9, java.sql.Types.INTEGER);
+            }
 
             stmt.executeUpdate();
 
@@ -77,6 +92,22 @@ public class VariableExpenseDAO {
                 }
 
                 expense.setDescription(rs.getString("description"));
+
+                expense.setInstallmentGroup(rs.getString("installment_group"));
+
+                int installmentNumber = rs.getInt("installment_number");
+                if (rs.wasNull()) {
+                    expense.setInstallmentNumber(null);
+                } else {
+                    expense.setInstallmentNumber(installmentNumber);
+                }
+
+                int totalInstallments = rs.getInt("total_installments");
+                if (rs.wasNull()) {
+                    expense.setTotalInstallments(null);
+                } else {
+                    expense.setTotalInstallments(totalInstallments);
+                }
 
                 expenses.add(expense);
             }

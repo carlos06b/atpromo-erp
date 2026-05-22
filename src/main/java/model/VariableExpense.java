@@ -12,6 +12,9 @@ public class VariableExpense {
     private boolean status;
     private LocalDate paymentDate;
     private String description;
+    private String installmentGroup;
+    private Integer installmentNumber;
+    private Integer totalInstallments;
 
     public VariableExpense() {}
 
@@ -35,4 +38,28 @@ public class VariableExpense {
 
     public String getDescription() { return description; }
     public void setDescription(String description) { this.description = description; }
+
+    public String getInstallmentGroup() {
+        return installmentGroup;
+    }
+
+    public void setInstallmentGroup(String installmentGroup) {
+        this.installmentGroup = installmentGroup;
+    }
+
+    public Integer getInstallmentNumber() {
+        return installmentNumber;
+    }
+
+    public void setInstallmentNumber(Integer installmentNumber) {
+        this.installmentNumber = installmentNumber;
+    }
+
+    public Integer getTotalInstallments() {
+        return totalInstallments;
+    }
+
+    public void setTotalInstallments(Integer totalInstallments) {
+        this.totalInstallments = totalInstallments;
+    }
 }

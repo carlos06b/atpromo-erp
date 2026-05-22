@@ -10,9 +10,18 @@ public class FixedExpense {
     private LocalDate dueDate;
     private boolean status;
     private LocalDate paymentDate;
+    private String description;
     private boolean active;
 
     public FixedExpense() {}
+
+    public String getDescription() {
+        return description;
+    }
+
+    public void setDescription(String description) {
+        this.description = description;
+    }
 
     public int getId() {
         return id;

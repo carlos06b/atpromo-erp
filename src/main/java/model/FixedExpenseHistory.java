@@ -12,8 +12,17 @@ public class FixedExpenseHistory {
     private LocalDate dueDate;
     private String status;
     private LocalDate paymentDate;
+    private String description;
 
     public FixedExpenseHistory() {
+    }
+
+    public String getDescription() {
+        return description;
+    }
+
+    public void setDescription(String description) {
+        this.description = description;
     }
 
     public int getId() {

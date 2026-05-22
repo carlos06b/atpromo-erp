@@ -7,18 +7,17 @@ import model.FixedExpense;
 import model.FixedExpenseHistory;
 import model.VariableExpense;
 import org.jdesktop.swingx.JXDatePicker;
-import java.util.Date;
-import java.time.ZoneId;
-import java.text.NumberFormat;
-import java.util.Locale;
 
 import javax.swing.*;
 import javax.swing.table.DefaultTableModel;
 import java.awt.*;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
+import java.text.NumberFormat;
 import java.time.LocalDate;
+import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
+import java.util.Locale;
 import java.util.List;
 
 public class ExpenseFrame extends JFrame {
@@ -46,6 +45,7 @@ public class ExpenseFrame extends JFrame {
     private JTextField txtFixedName;
     private JTextField txtFixedAmount;
     private JTextField txtFixedDueDate;
+    private JTextField txtFixedDescription;
 
     private JTextField txtHistoryStartDate;
     private JTextField txtHistoryEndDate;
@@ -122,7 +122,7 @@ public class ExpenseFrame extends JFrame {
 
         JPanel formPanel = createCardPanel();
         formPanel.setLayout(null);
-        formPanel.setPreferredSize(new Dimension(1000, 125));
+        formPanel.setPreferredSize(new Dimension(1000, 170));
 
         JLabel title = createSectionTitle("Cadastrar despesa fixa");
         title.setBounds(18, 12, 300, 25);
@@ -153,20 +153,28 @@ public class ExpenseFrame extends JFrame {
         txtFixedDueDate.setToolTipText("Use o formato dd/MM/yyyy");
         formPanel.add(txtFixedDueDate);
 
+        JLabel descriptionLabel = createFieldLabel("Descrição");
+        descriptionLabel.setBounds(565, 48, 160, 22);
+        formPanel.add(descriptionLabel);
+
+        txtFixedDescription = createTextField();
+        txtFixedDescription.setBounds(565, 72, 480, 34);
+        formPanel.add(txtFixedDescription);
+
         JButton btnSave = createPrimaryButton("Cadastrar");
-        btnSave.setBounds(565, 70, 115, 38);
+        btnSave.setBounds(18, 118, 115, 38);
         formPanel.add(btnSave);
 
         JButton btnEdit = createDarkButton("Editar");
-        btnEdit.setBounds(690, 70, 95, 38);
+        btnEdit.setBounds(145, 118, 95, 38);
         formPanel.add(btnEdit);
 
         JButton btnList = createDarkButton("Atualizar");
-        btnList.setBounds(795, 70, 110, 38);
+        btnList.setBounds(252, 118, 110, 38);
         formPanel.add(btnList);
 
         JButton btnMarkPaid = createPrimaryButton("Marcar Paga");
-        btnMarkPaid.setBounds(915, 70, 125, 38);
+        btnMarkPaid.setBounds(374, 118, 125, 38);
         formPanel.add(btnMarkPaid);
 
         fixedExpenseTable = createStyledTable();
@@ -174,6 +182,14 @@ public class ExpenseFrame extends JFrame {
 
         JPanel bottomPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT, 10, 0));
         bottomPanel.setBackground(LIGHT_GRAY);
+
+        JButton btnGenerateSelected = createPrimaryButton("Gerar no Histórico");
+        btnGenerateSelected.setPreferredSize(new Dimension(170, 38));
+        bottomPanel.add(btnGenerateSelected);
+
+        JButton btnDetails = createDarkButton("Ver Detalhes");
+        btnDetails.setPreferredSize(new Dimension(140, 38));
+        bottomPanel.add(btnDetails);
 
         JButton btnInactive = createDangerButton("Inativar Selecionada");
         btnInactive.setPreferredSize(new Dimension(180, 38));
@@ -188,6 +204,8 @@ public class ExpenseFrame extends JFrame {
         btnList.addActionListener(e -> loadFixedExpenses());
         btnInactive.addActionListener(e -> deleteFixedExpense());
         btnMarkPaid.addActionListener(e -> markFixedExpenseAsPaid());
+        btnDetails.addActionListener(e -> showFixedExpenseDetails());
+        btnGenerateSelected.addActionListener(e -> generateSelectedFixedExpenseHistory());
 
         loadFixedExpenses();
 
@@ -311,12 +329,16 @@ public class ExpenseFrame extends JFrame {
         formPanel.add(descriptionLabel);
 
         txtVariableDescription = createTextField();
-        txtVariableDescription.setBounds(585, 72, 260, 34);
+        txtVariableDescription.setBounds(585, 72, 235, 34);
         formPanel.add(txtVariableDescription);
 
         JButton btnSave = createPrimaryButton("Cadastrar");
-        btnSave.setBounds(870, 70, 135, 38);
+        btnSave.setBounds(840, 70, 120, 38);
         formPanel.add(btnSave);
+
+        JButton btnInstallments = createDarkButton("Cadastrar Parcelada");
+        btnInstallments.setBounds(975, 70, 180, 38);
+        formPanel.add(btnInstallments);
 
         JPanel filterPanel = createCardPanel();
         filterPanel.setLayout(null);
@@ -364,6 +386,7 @@ public class ExpenseFrame extends JFrame {
         panel.add(scrollPane, BorderLayout.CENTER);
 
         btnSave.addActionListener(e -> saveVariableExpense());
+        btnInstallments.addActionListener(e -> openInstallmentVariableExpenseDialog());
         btnSearch.addActionListener(e -> loadVariableExpensesByPeriod());
         btnMarkPaid.addActionListener(e -> markVariableExpenseAsPaid());
         btnDelete.addActionListener(e -> deleteVariableExpense());
@@ -379,6 +402,7 @@ public class ExpenseFrame extends JFrame {
             String name = txtFixedName.getText().trim();
             BigDecimal amount = parseMoney(txtFixedAmount.getText());
             LocalDate dueDate = parseDate(txtFixedDueDate.getText());
+            String description = txtFixedDescription.getText().trim();
 
             if (name.isEmpty()) {
                 showError("Informe o nome da despesa fixa.");
@@ -387,6 +411,7 @@ public class ExpenseFrame extends JFrame {
 
             FixedExpense expense = new FixedExpense();
             expense.setName(name);
+            expense.setDescription(description.isEmpty() ? null : description);
             expense.setAmount(amount);
             expense.setDueDate(dueDate);
             expense.setStatus(false);
@@ -422,14 +447,19 @@ public class ExpenseFrame extends JFrame {
         );
         String currentDueDate = fixedExpenseTable.getModel().getValueAt(modelRow, 3).toString();
 
+        Object descriptionValue = fixedExpenseTable.getModel().getValueAt(modelRow, 6);
+        String currentDescription = descriptionValue != null ? descriptionValue.toString() : "";
+
         JTextField nameField = createTextField(currentName);
         JTextField amountField = createTextField(currentAmount);
         JTextField dueDateField = createTextField(currentDueDate);
+        JTextField descriptionField = createTextField(currentDescription);
 
         Object[] fields = {
                 "Nome:", nameField,
                 "Valor:", amountField,
-                "Vencimento (dd/MM/yyyy):", dueDateField
+                "Vencimento (dd/MM/yyyy):", dueDateField,
+                "Descrição:", descriptionField
         };
 
         int option = JOptionPane.showConfirmDialog(
@@ -442,6 +472,7 @@ public class ExpenseFrame extends JFrame {
         if (option == JOptionPane.OK_OPTION) {
             try {
                 String name = nameField.getText().trim();
+                String description = descriptionField.getText().trim();
 
                 if (name.isEmpty()) {
                     showError("Informe o nome da despesa fixa.");
@@ -451,6 +482,7 @@ public class ExpenseFrame extends JFrame {
                 FixedExpense expense = new FixedExpense();
                 expense.setId(id);
                 expense.setName(name);
+                expense.setDescription(description.isEmpty() ? null : description);
                 expense.setAmount(parseMoney(amountField.getText()));
                 expense.setDueDate(parseDate(dueDateField.getText()));
 
@@ -475,6 +507,7 @@ public class ExpenseFrame extends JFrame {
         model.addColumn("Vencimento");
         model.addColumn("Status");
         model.addColumn("Pagamento");
+        model.addColumn("Descrição");
 
         for (FixedExpense e : expenses) {
             model.addRow(new Object[]{
@@ -483,12 +516,115 @@ public class ExpenseFrame extends JFrame {
                     formatMoney(e.getAmount()),
                     formatDate(e.getDueDate()),
                     e.isStatus() ? "PAGO" : "PENDENTE",
-                    formatDate(e.getPaymentDate())
+                    formatDate(e.getPaymentDate()),
+                    e.getDescription() != null ? e.getDescription() : ""
             });
         }
 
         fixedExpenseTable.setModel(model);
         hideIdColumn(fixedExpenseTable);
+        hideColumnByName(fixedExpenseTable, "Descrição");
+    }
+
+    private void showFixedExpenseDetails() {
+        int row = fixedExpenseTable.getSelectedRow();
+
+        if (row == -1) {
+            showError("Selecione uma despesa fixa para ver detalhes.");
+            return;
+        }
+
+        int modelRow = fixedExpenseTable.convertRowIndexToModel(row);
+
+        String name = fixedExpenseTable.getModel().getValueAt(modelRow, 1).toString();
+        String amount = fixedExpenseTable.getModel().getValueAt(modelRow, 2).toString();
+        String dueDate = fixedExpenseTable.getModel().getValueAt(modelRow, 3).toString();
+        String status = fixedExpenseTable.getModel().getValueAt(modelRow, 4).toString();
+        String payment = fixedExpenseTable.getModel().getValueAt(modelRow, 5).toString();
+
+        Object descriptionValue = fixedExpenseTable.getModel().getValueAt(modelRow, 6);
+        String description = descriptionValue != null ? descriptionValue.toString() : "";
+
+        JDialog dialog = new JDialog(this, "Detalhes da Despesa Fixa", true);
+        dialog.setSize(560, 430);
+        dialog.setLocationRelativeTo(this);
+        dialog.setResizable(false);
+        dialog.setLayout(new BorderLayout());
+        dialog.getContentPane().setBackground(WHITE);
+
+        JPanel header = new JPanel(null);
+        header.setPreferredSize(new Dimension(560, 95));
+        header.setBackground(BLACK);
+
+        JLabel title = new JLabel(name);
+        title.setForeground(WHITE);
+        title.setFont(new Font("Segoe UI", Font.BOLD, 22));
+        title.setBounds(26, 18, 430, 30);
+        header.add(title);
+
+        JLabel subtitle = new JLabel("Despesa fixa cadastrada");
+        subtitle.setForeground(new Color(210, 210, 210));
+        subtitle.setFont(new Font("Segoe UI", Font.PLAIN, 13));
+        subtitle.setBounds(28, 52, 300, 22);
+        header.add(subtitle);
+
+        JPanel line = new JPanel();
+        line.setBackground(ORANGE);
+        line.setBounds(26, 82, 485, 3);
+        header.add(line);
+
+        JPanel body = new JPanel(null);
+        body.setBackground(WHITE);
+
+        JPanel info = new JPanel(new GridLayout(0, 1, 0, 8));
+        info.setBackground(WHITE);
+        info.setBorder(BorderFactory.createCompoundBorder(
+                BorderFactory.createLineBorder(BORDER_GRAY),
+                BorderFactory.createEmptyBorder(14, 18, 14, 18)
+        ));
+        info.setBounds(26, 20, 485, 215);
+
+        info.add(createDetailLine("Valor", amount));
+        info.add(createDetailLine("Vencimento", dueDate));
+        info.add(createDetailLine("Status", status));
+        info.add(createDetailLine("Pagamento", payment));
+        info.add(createDetailLine("Descrição", description.isBlank() ? "Não informado" : description));
+
+        body.add(info);
+
+        JPanel footer = new JPanel(null);
+        footer.setPreferredSize(new Dimension(560, 65));
+        footer.setBackground(LIGHT_GRAY);
+
+        JButton btnClose = createDarkButton("Fechar");
+        btnClose.setBounds(390, 16, 120, 34);
+        btnClose.addActionListener(e -> dialog.dispose());
+        footer.add(btnClose);
+
+        dialog.add(header, BorderLayout.NORTH);
+        dialog.add(body, BorderLayout.CENTER);
+        dialog.add(footer, BorderLayout.SOUTH);
+
+        dialog.setVisible(true);
+    }
+
+    private JPanel createDetailLine(String label, String value) {
+        JPanel line = new JPanel(new BorderLayout());
+        line.setBackground(WHITE);
+
+        JLabel labelText = new JLabel(label);
+        labelText.setForeground(TEXT_GRAY);
+        labelText.setFont(new Font("Segoe UI", Font.BOLD, 12));
+        labelText.setPreferredSize(new Dimension(110, 26));
+
+        JLabel valueText = new JLabel(value);
+        valueText.setForeground(BLACK);
+        valueText.setFont(new Font("Segoe UI", Font.PLAIN, 14));
+
+        line.add(labelText, BorderLayout.WEST);
+        line.add(valueText, BorderLayout.CENTER);
+
+        return line;
     }
 
     private void deleteFixedExpense() {
@@ -515,7 +651,6 @@ public class ExpenseFrame extends JFrame {
     }
 
     private void markFixedExpenseAsPaid() {
-
         int id = getSelectedId(fixedExpenseTable);
 
         if (id == -1) {
@@ -539,7 +674,6 @@ public class ExpenseFrame extends JFrame {
         }
 
         try {
-
             LocalDate paymentDate = datePicker.getDate()
                     .toInstant()
                     .atZone(ZoneId.systemDefault())
@@ -552,26 +686,74 @@ public class ExpenseFrame extends JFrame {
             showSuccess("Despesa fixa marcada como paga!");
 
         } catch (Exception e) {
-
             showError("Erro ao marcar despesa como paga: " + e.getMessage());
         }
     }
 
     private void generateMonthlyFixedExpenses() {
-        LocalDate today = LocalDate.now();
+        try {
+            LocalDate selectedMonth = parseDate(txtHistoryStartDate.getText());
+
+            int month = selectedMonth.getMonthValue();
+            int year = selectedMonth.getYear();
+
+            int option = JOptionPane.showConfirmDialog(
+                    this,
+                    "Gerar despesas fixas para " + month + "/" + year + "?\n\n" +
+                            "O sistema não duplicará despesas que já existem nesse mês.",
+                    "Gerar despesas do mês",
+                    JOptionPane.YES_NO_OPTION
+            );
+
+            if (option == JOptionPane.YES_OPTION) {
+                fixedExpenseHistoryDAO.generateMonthlyExpenses(month, year);
+                loadFixedExpenseHistoryByPeriod();
+                showSuccess("Despesas fixas de " + month + "/" + year + " geradas com sucesso!");
+            }
+
+        } catch (Exception e) {
+            showError("Informe uma data inicial válida para definir o mês.");
+        }
+    }
+
+    private void generateSelectedFixedExpenseHistory() {
+        int id = getSelectedId(fixedExpenseTable);
+
+        if (id == -1) {
+            showError("Selecione uma despesa fixa para gerar no histórico.");
+            return;
+        }
+
+        int row = fixedExpenseTable.getSelectedRow();
+        int modelRow = fixedExpenseTable.convertRowIndexToModel(row);
+
+        String name = fixedExpenseTable.getModel().getValueAt(modelRow, 1).toString();
+        String dueDateText = fixedExpenseTable.getModel().getValueAt(modelRow, 3).toString();
+        LocalDate dueDate = parseDate(dueDateText);
 
         int option = JOptionPane.showConfirmDialog(
                 this,
-                "Gerar despesas fixas para " + today.getMonthValue() + "/" + today.getYear() + "?",
-                "Gerar despesas do mês",
+                "Gerar no histórico apenas esta despesa?\n\n" +
+                        name + "\n" +
+                        "Mês: " + dueDate.getMonthValue() + "/" + dueDate.getYear(),
+                "Gerar despesa selecionada",
                 JOptionPane.YES_NO_OPTION
         );
 
         if (option == JOptionPane.YES_OPTION) {
-            fixedExpenseHistoryDAO.generateMonthlyExpenses(today.getMonthValue(), today.getYear());
-            fillCurrentMonthFields();
-            loadFixedExpenseHistoryByPeriod();
-            showSuccess("Despesas fixas do mês geradas com sucesso!");
+            try {
+                fixedExpenseHistoryDAO.generateSingleExpenseFromRegistrationDate(id);
+
+                txtHistoryStartDate.setText(formatDate(dueDate.withDayOfMonth(1)));
+                txtHistoryEndDate.setText(formatDate(dueDate.withDayOfMonth(dueDate.lengthOfMonth())));
+
+                loadFixedExpenseHistoryByPeriod();
+
+                showSuccess("Despesa fixa gerada no histórico com sucesso!");
+
+            } catch (Exception e) {
+                showError(e.getMessage());
+            }
         }
     }
 
@@ -811,6 +993,136 @@ public class ExpenseFrame extends JFrame {
         }
     }
 
+    private void openInstallmentVariableExpenseDialog() {
+        try {
+            String name = txtVariableName.getText().trim();
+            String description = txtVariableDescription.getText().trim();
+            LocalDate firstDate = parseDate(txtVariableDate.getText());
+
+            if (name.isEmpty()) {
+                showError("Informe o nome da despesa variável.");
+                return;
+            }
+
+            if (description.isEmpty()) {
+                description = "Sem descrição";
+            }
+
+            BigDecimal totalAmount = BigDecimal.ZERO;
+
+            if (!txtVariableAmount.getText().trim().isEmpty()) {
+                totalAmount = parseMoney(txtVariableAmount.getText());
+            }
+
+            JSpinner spinner = new JSpinner(new SpinnerNumberModel(3, 2, 36, 1));
+
+            int quantityOption = JOptionPane.showConfirmDialog(
+                    this,
+                    spinner,
+                    "Quantidade de parcelas",
+                    JOptionPane.OK_CANCEL_OPTION,
+                    JOptionPane.PLAIN_MESSAGE
+            );
+
+            if (quantityOption != JOptionPane.OK_OPTION) {
+                return;
+            }
+
+            int totalInstallments = (int) spinner.getValue();
+
+            BigDecimal suggestedAmount = BigDecimal.ZERO;
+
+            if (totalAmount.compareTo(BigDecimal.ZERO) > 0) {
+                suggestedAmount = totalAmount.divide(
+                        BigDecimal.valueOf(totalInstallments),
+                        2,
+                        RoundingMode.HALF_UP
+                );
+            }
+
+            DefaultTableModel installmentModel = new DefaultTableModel(
+                    new Object[]{"Parcela", "Valor", "Vencimento"}, 0
+            ) {
+                @Override
+                public boolean isCellEditable(int row, int column) {
+                    return column != 0;
+                }
+            };
+
+            for (int i = 1; i <= totalInstallments; i++) {
+                installmentModel.addRow(new Object[]{
+                        i + "/" + totalInstallments,
+                        formatMoneyForInput(suggestedAmount),
+                        formatDate(firstDate.plusMonths(i - 1))
+                });
+            }
+
+            JTable installmentTable = createStyledTable();
+            installmentTable.setModel(installmentModel);
+            installmentTable.setPreferredScrollableViewportSize(new Dimension(430, 160));
+
+            JScrollPane scrollPane = new JScrollPane(installmentTable);
+
+            int option = JOptionPane.showConfirmDialog(
+                    this,
+                    scrollPane,
+                    "Conferir parcelas",
+                    JOptionPane.OK_CANCEL_OPTION,
+                    JOptionPane.PLAIN_MESSAGE
+            );
+
+            if (option != JOptionPane.OK_OPTION) {
+                return;
+            }
+
+            List<BigDecimal> amounts = new java.util.ArrayList<>();
+            List<LocalDate> dates = new java.util.ArrayList<>();
+
+            for (int i = 0; i < totalInstallments; i++) {
+                Object amountValue = installmentModel.getValueAt(i, 1);
+                Object dateValue = installmentModel.getValueAt(i, 2);
+
+                if (amountValue == null || amountValue.toString().trim().isEmpty()) {
+                    showError("Informe o valor da parcela " + (i + 1) + ".");
+                    return;
+                }
+
+                if (dateValue == null || dateValue.toString().trim().isEmpty()) {
+                    showError("Informe a data da parcela " + (i + 1) + ".");
+                    return;
+                }
+
+                amounts.add(parseMoney(amountValue.toString()));
+                dates.add(parseDate(dateValue.toString()));
+            }
+
+            String installmentGroup = "VAR-" + System.currentTimeMillis();
+
+            for (int i = 0; i < totalInstallments; i++) {
+                VariableExpense expense = new VariableExpense();
+                expense.setName(name + " - Parcela " + (i + 1) + "/" + totalInstallments);
+                expense.setAmount(amounts.get(i));
+                expense.setDate(dates.get(i));
+                expense.setStatus(false);
+                expense.setPaymentDate(null);
+                expense.setDescription(description);
+                expense.setInstallmentGroup(installmentGroup);
+                expense.setInstallmentNumber(i + 1);
+                expense.setTotalInstallments(totalInstallments);
+
+                variableExpenseDAO.save(expense);
+            }
+
+            clearVariableFields();
+            loadVariableExpensesByPeriod();
+
+            showSuccess("Despesa parcelada cadastrada com sucesso!");
+
+        } catch (Exception ex) {
+            showError("Erro ao cadastrar despesa parcelada: " + ex.getMessage());
+        }
+    }
+
     private void loadVariableExpensesByPeriod() {
         try {
             LocalDate start = parseDate(txtVariableStartDate.getText());
@@ -826,6 +1138,7 @@ public class ExpenseFrame extends JFrame {
             DefaultTableModel model = createTableModel();
             model.addColumn("ID");
             model.addColumn("Nome");
+            model.addColumn("Parcela");
             model.addColumn("Valor");
             model.addColumn("Data");
             model.addColumn("Status");
@@ -836,6 +1149,7 @@ public class ExpenseFrame extends JFrame {
                 model.addRow(new Object[]{
                         e.getId(),
                         e.getName(),
+                        formatInstallment(e),
                         formatMoney(e.getAmount()),
                         formatDate(e.getDate()),
                         e.isStatus() ? "PAGO" : "PENDENTE",
@@ -999,6 +1313,15 @@ public class ExpenseFrame extends JFrame {
         }
     }
 
+    private void hideColumnByName(JTable table, String columnName) {
+        for (int i = 0; i < table.getColumnModel().getColumnCount(); i++) {
+            if (table.getColumnName(i).equals(columnName)) {
+                table.removeColumn(table.getColumnModel().getColumn(i));
+                return;
+            }
+        }
+    }
+
     private int getSelectedId(JTable table) {
         int viewRow = table.getSelectedRow();
 
@@ -1066,6 +1389,14 @@ public class ExpenseFrame extends JFrame {
         return LocalDate.parse(value.trim(), brFormatter);
     }
 
+    private String formatInstallment(VariableExpense expense) {
+        if (expense.getInstallmentNumber() == null || expense.getTotalInstallments() == null) {
+            return "-";
+        }
+
+        return expense.getInstallmentNumber() + "/" + expense.getTotalInstallments();
+    }
+
     private String formatDate(LocalDate date) {
         if (date == null) {
             return "-";
@@ -1080,6 +1411,16 @@ public class ExpenseFrame extends JFrame {
         }
 
         return moneyFormatter.format(value.setScale(2, RoundingMode.HALF_UP));
+    }
+
+    private String formatMoneyForInput(BigDecimal value) {
+        if (value == null || value.compareTo(BigDecimal.ZERO) <= 0) {
+            return "";
+        }
+
+        return value.setScale(2, RoundingMode.HALF_UP)
+                .toPlainString()
+                .replace(".", ",");
     }
 
     private void fillCurrentMonthFields() {
@@ -1105,6 +1446,7 @@ public class ExpenseFrame extends JFrame {
         txtFixedName.setText("");
         txtFixedAmount.setText("");
         txtFixedDueDate.setText("");
+        txtFixedDescription.setText("");
     }
 
     private void clearVariableFields() {

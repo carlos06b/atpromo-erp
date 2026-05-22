@@ -29,10 +29,10 @@ public class FixedExpenseHistoryDAO {
             """;
 
         String insertSql = """
-            INSERT INTO fixed_expense_history
-            (fixed_expense_id, name, amount, due_date, status, payment_date)
-            VALUES (?, ?, ?, ?, ?, ?)
-            """;
+    INSERT INTO fixed_expense_history
+    (fixed_expense_id, name, description, amount, due_date, status, payment_date)
+    VALUES (?, ?, ?, ?, ?, ?, ?)
+    """;
 
         try (Connection conn = ConnectionFactory.getConnection();
              PreparedStatement selectStmt = conn.prepareStatement(selectSql);
@@ -64,11 +64,11 @@ public class FixedExpenseHistoryDAO {
 
                 insertStmt.setInt(1, fixedExpenseId);
                 insertStmt.setString(2, rs.getString("name"));
-                insertStmt.setBigDecimal(3, rs.getBigDecimal("amount"));
-                insertStmt.setDate(4, java.sql.Date.valueOf(dueDate));
-
-                insertStmt.setString(5, "PENDENTE");
-                insertStmt.setNull(6, java.sql.Types.DATE);
+                insertStmt.setString(3, rs.getString("description"));
+                insertStmt.setBigDecimal(4, rs.getBigDecimal("amount"));
+                insertStmt.setDate(5, java.sql.Date.valueOf(dueDate));
+                insertStmt.setString(6, "PENDENTE");
+                insertStmt.setNull(7, java.sql.Types.DATE);
 
                 insertStmt.executeUpdate();
             }
@@ -124,6 +124,7 @@ public class FixedExpenseHistoryDAO {
                 h.setAmount(rs.getBigDecimal("amount"));
                 h.setDueDate(rs.getDate("due_date").toLocalDate());
                 h.setStatus(rs.getString("status"));
+                h.setDescription(rs.getString("description"));
 
                 if (rs.getDate("payment_date") != null) {
                     h.setPaymentDate(rs.getDate("payment_date").toLocalDate());
@@ -231,6 +232,70 @@ public class FixedExpenseHistoryDAO {
         }
 
         return BigDecimal.ZERO;
+    }
+
+    public void generateSingleExpenseFromRegistrationDate(int fixedExpenseId) {
+        String selectSql = """
+            SELECT *
+            FROM fixed_expense
+            WHERE id = ?
+              AND active = 1
+            """;
+
+        String checkSql = """
+            SELECT COUNT(*) AS total
+            FROM fixed_expense_history
+            WHERE fixed_expense_id = ?
+              AND MONTH(due_date) = ?
+              AND YEAR(due_date) = ?
+            """;
+
+        String insertSql = """
+            INSERT INTO fixed_expense_history
+            (fixed_expense_id, name, description, amount, due_date, status, payment_date)
+            VALUES (?, ?, ?, ?, ?, ?, ?)
+            """;
+
+        try (Connection conn = ConnectionFactory.getConnection();
+             PreparedStatement selectStmt = conn.prepareStatement(selectSql);
+             PreparedStatement checkStmt = conn.prepareStatement(checkSql);
+             PreparedStatement insertStmt = conn.prepareStatement(insertSql)) {
+
+            selectStmt.setInt(1, fixedExpenseId);
+
+            ResultSet rs = selectStmt.executeQuery();
+
+            if (!rs.next()) {
+                throw new RuntimeException("Despesa fixa não encontrada ou inativa.");
+            }
+
+            LocalDate dueDate = rs.getDate("due_date").toLocalDate();
+            int month = dueDate.getMonthValue();
+            int year = dueDate.getYear();
+
+            checkStmt.setInt(1, fixedExpenseId);
+            checkStmt.setInt(2, month);
+            checkStmt.setInt(3, year);
+
+            ResultSet checkRs = checkStmt.executeQuery();
+
+            if (checkRs.next() && checkRs.getInt("total") > 0) {
+                throw new RuntimeException("Essa despesa fixa já existe no histórico desse mês.");
+            }
+
+            insertStmt.setInt(1, fixedExpenseId);
+            insertStmt.setString(2, rs.getString("name"));
+            insertStmt.setString(3, rs.getString("description"));
+            insertStmt.setBigDecimal(4, rs.getBigDecimal("amount"));
+            insertStmt.setDate(5, java.sql.Date.valueOf(dueDate));
+            insertStmt.setString(6, "PENDENTE");
+            insertStmt.setNull(7, java.sql.Types.DATE);
+
+            insertStmt.executeUpdate();
+
+        } catch (Exception e) {
+            throw new RuntimeException("Erro ao gerar despesa fixa no histórico: " + e.getMessage(), e);
+        }
     }
 
     public void reopen(int id) {

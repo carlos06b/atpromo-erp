@@ -14,25 +14,26 @@ public class FixedExpenseDAO {
     public void save(FixedExpense expense) {
         String sql = """
                 INSERT INTO fixed_expense
-                (name, amount, due_date, status, payment_date, active)
-                VALUES (?, ?, ?, ?, ?, ?)
+                (name, description, amount, due_date, status, payment_date, active)
+                VALUES (?, ?, ?, ?, ?, ?, ?)
                 """;
 
         try (Connection conn = ConnectionFactory.getConnection();
              PreparedStatement stmt = conn.prepareStatement(sql)) {
 
             stmt.setString(1, expense.getName());
-            stmt.setBigDecimal(2, expense.getAmount());
-            stmt.setDate(3, java.sql.Date.valueOf(expense.getDueDate()));
-            stmt.setBoolean(4, expense.isStatus());
+            stmt.setString(2, expense.getDescription());
+            stmt.setBigDecimal(3, expense.getAmount());
+            stmt.setDate(4, java.sql.Date.valueOf(expense.getDueDate()));
+            stmt.setBoolean(5, expense.isStatus());
 
             if (expense.getPaymentDate() != null) {
-                stmt.setDate(5, java.sql.Date.valueOf(expense.getPaymentDate()));
+                stmt.setDate(6, java.sql.Date.valueOf(expense.getPaymentDate()));
             } else {
-                stmt.setNull(5, java.sql.Types.DATE);
+                stmt.setNull(6, java.sql.Types.DATE);
             }
 
-            stmt.setBoolean(6, true);
+            stmt.setBoolean(7, true);
 
             stmt.executeUpdate();
             System.out.println("Despesa fixa cadastrada com sucesso!");
@@ -64,6 +65,7 @@ public class FixedExpenseDAO {
                 expense.setAmount(rs.getBigDecimal("amount"));
                 expense.setDueDate(rs.getDate("due_date").toLocalDate());
                 expense.setStatus(rs.getBoolean("status"));
+                expense.setDescription(rs.getString("description"));
 
                 if (rs.getDate("payment_date") != null) {
                     expense.setPaymentDate(rs.getDate("payment_date").toLocalDate());
@@ -113,19 +115,21 @@ public class FixedExpenseDAO {
         String sql = """
             UPDATE fixed_expense
             SET name = ?,
-                amount = ?,
-                due_date = ?
+            description = ?,
+            amount = ?,
+            due_date = ?
             WHERE id = ?
-              AND active = 1
+            AND active = 1
             """;
 
         try (Connection conn = ConnectionFactory.getConnection();
              PreparedStatement stmt = conn.prepareStatement(sql)) {
 
             stmt.setString(1, expense.getName());
-            stmt.setBigDecimal(2, expense.getAmount());
-            stmt.setDate(3, java.sql.Date.valueOf(expense.getDueDate()));
-            stmt.setInt(4, expense.getId());
+            stmt.setString(2, expense.getDescription());
+            stmt.setBigDecimal(3, expense.getAmount());
+            stmt.setDate(4, java.sql.Date.valueOf(expense.getDueDate()));
+            stmt.setInt(5, expense.getId());
 
             stmt.executeUpdate();
 

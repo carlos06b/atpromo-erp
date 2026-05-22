@@ -122,12 +122,22 @@ public class RequestFrame extends JFrame {
         main.add(btnExportPixBatch);
 
         String[] columns = {
-                "ID", "Promotor", "Tipo", "Valor", "Mensagem", "Status", "Data", "MensagemCompleta"
+                "ID", "Selecionar", "Promotor", "Tipo", "Valor", "Mensagem", "Status", "Data", "MensagemCompleta"
         };
 
         tableModel = new DefaultTableModel(columns, 0) {
+            @Override
             public boolean isCellEditable(int row, int column) {
-                return false;
+                return column == 1;
+            }
+
+            @Override
+            public Class<?> getColumnClass(int columnIndex) {
+                if (columnIndex == 1) {
+                    return Boolean.class;
+                }
+
+                return Object.class;
             }
         };
 
@@ -145,11 +155,12 @@ public class RequestFrame extends JFrame {
         table.getColumnModel().getColumn(0).setMaxWidth(0);
         table.getColumnModel().getColumn(0).setWidth(0);
 
-        table.getColumnModel().getColumn(4).setPreferredWidth(270);
+        table.getColumnModel().getColumn(1).setPreferredWidth(80);
+        table.getColumnModel().getColumn(5).setPreferredWidth(270);
 
-        table.getColumnModel().getColumn(7).setMinWidth(0);
-        table.getColumnModel().getColumn(7).setMaxWidth(0);
-        table.getColumnModel().getColumn(7).setWidth(0);
+        table.getColumnModel().getColumn(8).setMinWidth(0);
+        table.getColumnModel().getColumn(8).setMaxWidth(0);
+        table.getColumnModel().getColumn(8).setWidth(0);
 
         table.addMouseListener(new java.awt.event.MouseAdapter() {
             public void mouseClicked(java.awt.event.MouseEvent e) {
@@ -339,28 +350,78 @@ public class RequestFrame extends JFrame {
     }
 
     private void approveSelected() {
-        int row = table.getSelectedRow();
+        List<Integer> selectedRows = getRowsToApprove();
 
-        if (row == -1) {
-            showWarning("Selecione uma solicitação.");
+        if (selectedRows.isEmpty()) {
+            showWarning("Marque ou selecione ao menos uma solicitação.");
             return;
         }
 
-        int modelRow = table.convertRowIndexToModel(row);
-        int id = (int) tableModel.getValueAt(modelRow, 0);
+        List<Integer> pendingIds = new ArrayList<>();
+        int ignored = 0;
+
+        for (int modelRow : selectedRows) {
+            String status = tableModel.getValueAt(modelRow, 6).toString();
+
+            if (!"PENDENTE".equalsIgnoreCase(status)) {
+                ignored++;
+                continue;
+            }
+
+            int id = (int) tableModel.getValueAt(modelRow, 0);
+            pendingIds.add(id);
+        }
+
+        if (pendingIds.isEmpty()) {
+            showWarning("Nenhuma solicitação pendente foi selecionada.");
+            return;
+        }
 
         int confirm = JOptionPane.showConfirmDialog(
                 this,
-                "Deseja aprovar esta solicitação?",
-                "Confirmar aprovação",
+                "Deseja aprovar " + pendingIds.size() + " solicitação(ões)?",
+                "Confirmar aprovação em lote",
                 JOptionPane.YES_NO_OPTION
         );
 
         if (confirm == JOptionPane.YES_OPTION) {
-            requestController.approve(id, loggedUser.getId());
-            showSuccess("Solicitação aprovada!");
+            for (Integer id : pendingIds) {
+                requestController.approve(id, loggedUser.getId());
+            }
+
+            String message = pendingIds.size() + " solicitação(ões) aprovada(s) com sucesso.";
+
+            if (ignored > 0) {
+                message += "\n" + ignored + " solicitação(ões) ignorada(s) por não estarem pendentes.";
+            }
+
+            showSuccess(message);
             loadPending();
         }
+    }
+
+    private List<Integer> getRowsToApprove() {
+        List<Integer> rows = new ArrayList<>();
+
+        for (int i = 0; i < tableModel.getRowCount(); i++) {
+            Object checked = tableModel.getValueAt(i, 1);
+
+            if (Boolean.TRUE.equals(checked)) {
+                rows.add(i);
+            }
+        }
+
+        if (!rows.isEmpty()) {
+            return rows;
+        }
+
+        int[] selectedRows = table.getSelectedRows();
+
+        for (int selectedRow : selectedRows) {
+            rows.add(table.convertRowIndexToModel(selectedRow));
+        }
+
+        return rows;
     }
 
     private void rejectSelected() {
@@ -398,13 +459,13 @@ public class RequestFrame extends JFrame {
 
         int modelRow = table.convertRowIndexToModel(row);
 
-        Object promoter = tableModel.getValueAt(modelRow, 1);
-        Object type = tableModel.getValueAt(modelRow, 2);
-        Object amount = tableModel.getValueAt(modelRow, 3);
-        Object shortMessage = tableModel.getValueAt(modelRow, 4);
-        Object status = tableModel.getValueAt(modelRow, 5);
-        Object date = tableModel.getValueAt(modelRow, 6);
-        Object fullMessage = tableModel.getValueAt(modelRow, 7);
+        Object promoter = tableModel.getValueAt(modelRow, 2);
+        Object type = tableModel.getValueAt(modelRow, 3);
+        Object amount = tableModel.getValueAt(modelRow, 4);
+        Object shortMessage = tableModel.getValueAt(modelRow, 5);
+        Object status = tableModel.getValueAt(modelRow, 6);
+        Object date = tableModel.getValueAt(modelRow, 7);
+        Object fullMessage = tableModel.getValueAt(modelRow, 8);
 
         String messageToShow = fullMessage != null ? fullMessage.toString() : shortMessage.toString();
 
@@ -579,6 +640,7 @@ public class RequestFrame extends JFrame {
 
             tableModel.addRow(new Object[]{
                     id,
+                    false,
                     promoter,
                     type,
                     amount,
@@ -591,6 +653,7 @@ public class RequestFrame extends JFrame {
         } catch (Exception e) {
             tableModel.addRow(new Object[]{
                     "-",
+                    false,
                     "-",
                     "-",
                     "-",
