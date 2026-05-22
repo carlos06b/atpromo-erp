@@ -16,8 +16,8 @@ public class PromoterDAO {
 
         String sql = """
                 INSERT INTO promoter
-                (name, cpf, phone, uf, city, date_birth, active, salary, type, pix, pix_type)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                (name, cpf, phone, uf, city, company_link, date_birth, active, salary, type, pix, pix_type)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 """;
 
         try (Connection conn = ConnectionFactory.getConnection();
@@ -28,12 +28,13 @@ public class PromoterDAO {
             stmt.setString(3, promoter.getPhone());
             stmt.setString(4, promoter.getUf());
             stmt.setString(5, promoter.getCity());
-            stmt.setDate(6, java.sql.Date.valueOf(promoter.getDateBirth()));
-            stmt.setBoolean(7, promoter.isActive());
-            stmt.setBigDecimal(8, promoter.getSalary());
-            stmt.setString(9, promoter.getType());
-            stmt.setString(10, promoter.getPix());
-            stmt.setString(11, promoter.getPixType());
+            stmt.setString(6, promoter.getCompanyLink());
+            stmt.setDate(7, java.sql.Date.valueOf(promoter.getDateBirth()));
+            stmt.setBoolean(8, promoter.isActive());
+            stmt.setBigDecimal(9, promoter.getSalary());
+            stmt.setString(10, promoter.getType());
+            stmt.setString(11, promoter.getPix());
+            stmt.setString(12, promoter.getPixType());
 
             stmt.executeUpdate();
 
@@ -197,18 +198,18 @@ public class PromoterDAO {
     public void update(Promoter promoter) {
 
         String sql = """
-                UPDATE promoter
                 SET name = ?,
-                    cpf = ?,
-                    phone = ?,
-                    uf = ?,
-                    city = ?,
-                    date_birth = ?,
-                    active = ?,
-                    salary = ?,
-                    type = ?,
-                    pix = ?,
-                    pix_type = ?
+                cpf = ?,
+                phone = ?,
+                uf = ?,
+                city = ?,
+                company_link = ?,
+                date_birth = ?,
+                active = ?,
+                salary = ?,
+                type = ?,
+                pix = ?,
+                pix_type = ?
                 WHERE idpromoter = ?
                 """;
 
@@ -220,13 +221,14 @@ public class PromoterDAO {
             stmt.setString(3, promoter.getPhone());
             stmt.setString(4, promoter.getUf());
             stmt.setString(5, promoter.getCity());
-            stmt.setDate(6, java.sql.Date.valueOf(promoter.getDateBirth()));
-            stmt.setBoolean(7, promoter.isActive());
-            stmt.setBigDecimal(8, promoter.getSalary());
-            stmt.setString(9, promoter.getType());
-            stmt.setString(10, promoter.getPix());
-            stmt.setString(11, promoter.getPixType());
-            stmt.setInt(12, promoter.getId());
+            stmt.setString(6, promoter.getCompanyLink());
+            stmt.setDate(7, java.sql.Date.valueOf(promoter.getDateBirth()));
+            stmt.setBoolean(8, promoter.isActive());
+            stmt.setBigDecimal(9, promoter.getSalary());
+            stmt.setString(10, promoter.getType());
+            stmt.setString(11, promoter.getPix());
+            stmt.setString(12, promoter.getPixType());
+            stmt.setInt(13, promoter.getId());
 
             int rows = stmt.executeUpdate();
 
@@ -273,6 +275,7 @@ public class PromoterDAO {
         p.setPhone(rs.getString("phone"));
         p.setUf(rs.getString("uf"));
         p.setCity(rs.getString("city"));
+        p.setCompanyLink(rs.getString("company_link"));
         p.setDateBirth(rs.getDate("date_birth").toLocalDate());
         p.setActive(rs.getBoolean("active"));
         p.setSalary(rs.getBigDecimal("salary"));

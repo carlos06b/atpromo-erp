@@ -117,7 +117,7 @@ public class RequestDAO {
 
         List<String> list = new ArrayList<>();
 
-        String sql = "SELECT r.id, p.name AS promoter_name, r.type, r.amount, r.message, r.status, r.date " +
+        String sql = "SELECT r.id, p.name AS promoter_name, p.company_link, r.type, r.amount, r.message, r.status, r.date " +
                 "FROM request r " +
                 "JOIN promoter p ON r.id_promoter = p.idpromoter " +
                 "ORDER BY r.date DESC";
@@ -141,7 +141,7 @@ public class RequestDAO {
 
         List<String> list = new ArrayList<>();
 
-        String sql = "SELECT r.id, p.name AS promoter_name, r.type, r.amount, r.message, r.status, r.date " +
+        String sql = "SELECT r.id, p.name AS promoter_name, p.company_link, r.type, r.amount, r.message, r.status, r.date " +
                 "FROM request r " +
                 "JOIN promoter p ON r.id_promoter = p.idpromoter " +
                 "WHERE r.status = 'PENDENTE' " +
@@ -166,7 +166,7 @@ public class RequestDAO {
 
         List<String> list = new ArrayList<>();
 
-        String sql = "SELECT r.id, p.name AS promoter_name, r.type, r.amount, r.message, r.status, r.date " +
+        String sql = "SELECT r.id, p.name AS promoter_name, p.company_link, r.type, r.amount, r.message, r.status, r.date " +
                 "FROM request r " +
                 "JOIN promoter p ON r.id_promoter = p.idpromoter " +
                 "WHERE r.date BETWEEN ? AND ? " +
@@ -274,6 +274,7 @@ public class RequestDAO {
 
         return rs.getInt("id") + " | " +
                 "Promotor: " + rs.getString("promoter_name") + " | " +
+                "Vínculo: " + rs.getString("company_link") + " | " +
                 rs.getString("type") + " | " +
                 "R$ " + rs.getBigDecimal("amount") + " | " +
                 rs.getString("message") + " | " +

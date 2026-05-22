@@ -129,12 +129,12 @@ public class PromoterFrame extends JFrame {
 
         String[] columns = {
                 "ID", "Nome", "CPF", "Telefone", "UF", "Cidade",
-                "Tipo", "Salário", "Status", "Editar"
+                "Vínculo", "Tipo", "Salário", "Status", "Editar"
         };
 
         tableModel = new DefaultTableModel(columns, 0) {
             public boolean isCellEditable(int r, int c) {
-                return c == 9;
+                return c == 10;
             }
         };
 
@@ -148,15 +148,16 @@ public class PromoterFrame extends JFrame {
         table.getColumnModel().getColumn(0).setMaxWidth(0);
         table.getColumnModel().getColumn(0).setWidth(0);
 
-        table.getColumnModel().getColumn(1).setPreferredWidth(210);
-        table.getColumnModel().getColumn(2).setPreferredWidth(120);
-        table.getColumnModel().getColumn(3).setPreferredWidth(140);
-        table.getColumnModel().getColumn(4).setPreferredWidth(50);
-        table.getColumnModel().getColumn(5).setPreferredWidth(145);
+        table.getColumnModel().getColumn(1).setPreferredWidth(190);
+        table.getColumnModel().getColumn(2).setPreferredWidth(115);
+        table.getColumnModel().getColumn(3).setPreferredWidth(135);
+        table.getColumnModel().getColumn(4).setPreferredWidth(45);
+        table.getColumnModel().getColumn(5).setPreferredWidth(130);
         table.getColumnModel().getColumn(6).setPreferredWidth(80);
-        table.getColumnModel().getColumn(7).setPreferredWidth(110);
-        table.getColumnModel().getColumn(8).setPreferredWidth(90);
-        table.getColumnModel().getColumn(9).setPreferredWidth(90);
+        table.getColumnModel().getColumn(7).setPreferredWidth(75);
+        table.getColumnModel().getColumn(8).setPreferredWidth(105);
+        table.getColumnModel().getColumn(9).setPreferredWidth(85);
+        table.getColumnModel().getColumn(10).setPreferredWidth(85);
 
         JScrollPane scroll = new JScrollPane(table);
         scroll.setBorder(null);
@@ -212,15 +213,18 @@ public class PromoterFrame extends JFrame {
         JComboBox<String> typeBox = new JComboBox<>(new String[]{"TODOS", "CLT", "MEI", "FERISTA"});
         JComboBox<String> statusBox = new JComboBox<>(new String[]{"TODOS", "ATIVO", "INATIVO"});
         JComboBox<String> ufBox = new JComboBox<>(new String[]{"TODOS", "MA", "PI", "CE", "RN", "PB", "PE", "AL", "SE", "BA"});
+        JComboBox<String> companyBox = new JComboBox<>(new String[]{"TODOS", "AT", "TEJO"});
 
         styleComboBox(typeBox);
         styleComboBox(statusBox);
         styleComboBox(ufBox);
+        styleComboBox(companyBox);
 
         Object[] fields = {
                 "Tipo:", typeBox,
                 "Status:", statusBox,
-                "UF:", ufBox
+                "UF:", ufBox,
+                "Vínculo:", companyBox
         };
 
         int option = JOptionPane.showConfirmDialog(
@@ -235,6 +239,7 @@ public class PromoterFrame extends JFrame {
         String type = typeBox.getSelectedItem().toString();
         String status = statusBox.getSelectedItem().toString();
         String uf = ufBox.getSelectedItem().toString();
+        String company = companyBox.getSelectedItem().toString();
 
         List<Promoter> list = promoterController.getAll();
 
@@ -244,10 +249,11 @@ public class PromoterFrame extends JFrame {
                         || (status.equals("ATIVO") && p.isActive())
                         || (status.equals("INATIVO") && !p.isActive()))
                 .filter(p -> uf.equals("TODOS") || (p.getUf() != null && p.getUf().equalsIgnoreCase(uf)))
+                .filter(p -> company.equals("TODOS") || (p.getCompanyLink() != null && p.getCompanyLink().equalsIgnoreCase(company)))
                 .toList();
 
         fillTable(filtered);
-        statusLabel.setText("Filtro aplicado: " + type + " / " + status + " / " + uf);
+        statusLabel.setText("Filtro aplicado: " + type + " / " + status + " / " + uf + " / " + company);
     }
 
     private void searchByName() {
@@ -378,6 +384,13 @@ public class PromoterFrame extends JFrame {
         }
 
         JTextField city = createTextField(formatField(p.getCity()));
+
+        JComboBox<String> companyLink = createCompanyLinkComboBox();
+
+        if (p.getCompanyLink() != null && !p.getCompanyLink().isBlank()) {
+            companyLink.setSelectedItem(p.getCompanyLink());
+        }
+
         JTextField pix = createTextField(formatField(p.getPix()));
         JTextField salary = createTextField(moneyForInput(p.getSalary()));
 
@@ -396,6 +409,7 @@ public class PromoterFrame extends JFrame {
                 "Telefone:", phone,
                 "UF:", ufBox,
                 "Cidade:", city,
+                "Vínculo:", companyLink,
                 "PIX:", pix,
                 "Tipo do PIX:", pixType,
                 "Salário:", salary,
@@ -424,6 +438,7 @@ public class PromoterFrame extends JFrame {
                         cleanPhone(phone.getText()),
                         ufBox.getSelectedItem().toString(),
                         city.getText().trim(),
+                        companyLink.getSelectedItem().toString(),
                         pix.getText().trim(),
                         pixType.getSelectedItem().toString(),
                         parseMoney(salary.getText()),
@@ -446,6 +461,7 @@ public class PromoterFrame extends JFrame {
 
         JComboBox<String> ufBox = createUfComboBox();
         JTextField city = createTextField();
+        JComboBox<String> companyLink = createCompanyLinkComboBox();
 
         JTextField pix = createTextField();
         JTextField salary = createTextField();
@@ -469,6 +485,7 @@ public class PromoterFrame extends JFrame {
                 "Telefone:", phone,
                 "UF:", ufBox,
                 "Cidade:", city,
+                "Vínculo:", companyLink,
                 "PIX:", pix,
                 "Tipo do PIX:", pixType,
                 "Nascimento:", birthSpinner,
@@ -505,6 +522,7 @@ public class PromoterFrame extends JFrame {
                         cleanPhone(phone.getText()),
                         ufBox.getSelectedItem().toString(),
                         city.getText().trim(),
+                        companyLink.getSelectedItem().toString(),
                         pix.getText().trim(),
                         pixType.getSelectedItem().toString(),
                         dateBirth,
@@ -539,6 +557,7 @@ public class PromoterFrame extends JFrame {
                 formatPhone(p.getPhone()),
                 formatField(p.getUf()),
                 formatField(p.getCity()),
+                formatField(p.getCompanyLink()),
                 p.getType(),
                 formatMoney(p.getSalary()),
                 p.isActive() ? "ATIVO" : "INATIVO",
@@ -624,6 +643,7 @@ public class PromoterFrame extends JFrame {
         addDetail(info, "Telefone", formatPhone(p.getPhone()));
         addDetail(info, "UF", formatField(p.getUf()));
         addDetail(info, "Cidade", formatField(p.getCity()));
+        addDetail(info, "Vínculo", formatField(p.getCompanyLink()));
         addDetail(info, "Nascimento", formatDate(p.getDateBirth()));
         addDetail(info, "PIX", p.getPix() == null || p.getPix().isBlank() ? "Não informado" : p.getPix());
         addDetail(info, "Tipo do PIX", p.getPixType() == null || p.getPixType().isBlank() ? "Não informado" : p.getPixType());
@@ -840,6 +860,12 @@ public class PromoterFrame extends JFrame {
 
         styleComboBox(ufBox);
         return ufBox;
+    }
+
+    private JComboBox<String> createCompanyLinkComboBox() {
+        JComboBox<String> companyBox = new JComboBox<>(new String[]{"AT", "TEJO"});
+        styleComboBox(companyBox);
+        return companyBox;
     }
 
     private void styleComboBox(JComboBox<?> comboBox) {

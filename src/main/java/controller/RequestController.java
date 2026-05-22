@@ -20,8 +20,8 @@ import java.util.Map;
 
 public class RequestController {
 
-    private RequestDAO requestDAO = new RequestDAO();
-    private PromoterDAO promoterDAO = new PromoterDAO();
+    private final RequestDAO requestDAO = new RequestDAO();
+    private final PromoterDAO promoterDAO = new PromoterDAO();
 
     private static final Map<String, String> TYPE_LABELS = new LinkedHashMap<>();
 
@@ -78,7 +78,6 @@ public class RequestController {
     }
 
     public void listAll() {
-
         List<Request> list = requestDAO.findAll();
 
         if (list.isEmpty()) {
@@ -92,7 +91,6 @@ public class RequestController {
     }
 
     public void listAllWithPromoterName() {
-
         List<String> list = requestDAO.findAllWithPromoterName();
 
         if (list.isEmpty()) {
@@ -110,7 +108,6 @@ public class RequestController {
     }
 
     public void listPendingWithPromoterName() {
-
         List<String> list = requestDAO.findPendingWithPromoterName();
 
         if (list.isEmpty()) {
@@ -128,7 +125,6 @@ public class RequestController {
     }
 
     public void listByStatus(String status) {
-
         List<Request> list = requestDAO.findByStatus(status);
 
         if (list.isEmpty()) {
@@ -142,7 +138,6 @@ public class RequestController {
     }
 
     public void listByPeriod(LocalDateTime start, LocalDateTime end) {
-
         List<String> list = requestDAO.findByPeriodWithPromoterName(start, end);
 
         if (list.isEmpty()) {
@@ -159,26 +154,24 @@ public class RequestController {
         return requestDAO.findByPeriodWithPromoterName(start, end);
     }
 
-    public void approve(int id) {
-        approve(id, 0);
+    public boolean approve(int id) {
+        return approve(id, 0);
     }
 
-    public void approve(int id, int idUserFin) {
-
+    public boolean approve(int id, int idUserFin) {
         List<Request> list = requestDAO.findAll();
 
         for (Request r : list) {
-
             if (r.getId() == id) {
 
                 if (!r.getStatus().equalsIgnoreCase("PENDENTE")) {
-                    System.out.println("Essa solicitação já foi analisada.");
-                    return;
+                    System.out.println("Apenas solicitações pendentes podem ser aprovadas.");
+                    return false;
                 }
 
                 if (promoterDAO.findById(r.getId_Promoter()) == null) {
                     System.out.println("Erro: promotor não existe mais.");
-                    return;
+                    return false;
                 }
 
                 if (idUserFin > 0) {
@@ -188,44 +181,69 @@ public class RequestController {
                 requestDAO.updateStatus(id, "APROVADO");
 
                 FinancePromoter finance = new FinancePromoter();
-
                 finance.setIdPromoter(r.getId_Promoter());
                 finance.setType(r.getType());
                 finance.setAmount(r.getAmount());
                 finance.setDate(LocalDate.now());
-                finance.setStatus("DESCONTO".equalsIgnoreCase(r.getType()) ? "APLICADO" : "PAGO");
+                finance.setStatus("PAGO");
 
                 FinancePromoterDAO financeDAO = new FinancePromoterDAO();
                 financeDAO.save(finance);
 
                 System.out.println("Solicitação aprovada e lançada no financeiro.");
-                return;
+                return true;
             }
         }
 
         System.out.println("Solicitação não encontrada.");
+        return false;
     }
 
-    public void reject(int id) {
-
+    public boolean reject(int id) {
         List<Request> list = requestDAO.findAll();
 
         for (Request r : list) {
-
             if (r.getId() == id) {
 
                 if (!r.getStatus().equalsIgnoreCase("PENDENTE")) {
-                    System.out.println("Essa solicitação já foi analisada.");
-                    return;
+                    System.out.println("Apenas solicitações pendentes podem ser rejeitadas.");
+                    return false;
                 }
 
                 requestDAO.updateStatus(id, "REJEITADO");
                 System.out.println("Solicitação rejeitada.");
-                return;
+                return true;
             }
         }
 
         System.out.println("Solicitação não encontrada.");
+        return false;
+    }
+
+    public boolean reopenRejected(int id) {
+        List<Request> list = requestDAO.findAll();
+
+        for (Request r : list) {
+            if (r.getId() == id) {
+
+                if (r.getStatus().equalsIgnoreCase("APROVADO")) {
+                    System.out.println("Solicitações aprovadas já geraram lançamento financeiro e não podem ser reabertas automaticamente.");
+                    return false;
+                }
+
+                if (!r.getStatus().equalsIgnoreCase("REJEITADO")) {
+                    System.out.println("Apenas solicitações rejeitadas podem ser reabertas.");
+                    return false;
+                }
+
+                requestDAO.updateStatus(id, "PENDENTE");
+                System.out.println("Solicitação reaberta com sucesso.");
+                return true;
+            }
+        }
+
+        System.out.println("Solicitação não encontrada.");
+        return false;
     }
 
     public void delete(int id) {
@@ -251,7 +269,6 @@ public class RequestController {
         }
 
         String text = value.trim();
-
         String possibleCode = text.toUpperCase(Locale.ROOT);
 
         if (TYPE_LABELS.containsKey(possibleCode)) {

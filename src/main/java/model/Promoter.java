@@ -17,6 +17,7 @@ public class Promoter {
     private String type; // CLT ou MEI
     private String pix;
     private String pixType;
+    private String companyLink;
 
     public Promoter() {
     }
@@ -139,5 +140,13 @@ public class Promoter {
 
     public void setPixType(String pixType) {
         this.pixType = pixType;
+    }
+
+    public String getCompanyLink() {
+        return companyLink;
+    }
+
+    public void setCompanyLink(String companyLink) {
+        this.companyLink = companyLink;
     }
 }

@@ -12,7 +12,7 @@ public class PromoterController {
     private final PromoterDAO promoterDAO = new PromoterDAO();
 
     public void register(String name, String cpf, String phone, String uf, String city,
-                         String pix, String pixType, LocalDate dateBirth,
+                         String companyLink, String pix, String pixType, LocalDate dateBirth,
                          BigDecimal salary, String type) {
 
         if (name == null || name.trim().isEmpty()) {
@@ -45,6 +45,10 @@ public class PromoterController {
             throw new RuntimeException("Informe a cidade do promotor.");
         }
 
+        if (!isValidCompanyLink(companyLink)) {
+            throw new RuntimeException("Vínculo inválido. Use AT ou TEJO.");
+        }
+
         if (!isValidPromoterType(type)) {
             throw new RuntimeException("Tipo inválido. Use CLT, MEI ou FERISTA.");
         }
@@ -60,6 +64,7 @@ public class PromoterController {
         promoter.setPhone(phone.trim());
         promoter.setUf(uf.trim().toUpperCase());
         promoter.setCity(city.trim());
+        promoter.setCompanyLink(companyLink.trim().toUpperCase());
         promoter.setPix(formatNullable(pix));
         promoter.setPixType(formatNullable(pixType));
         promoter.setDateBirth(dateBirth);
@@ -91,6 +96,7 @@ public class PromoterController {
                             p.getPhone() + " | " +
                             p.getUf() + " | " +
                             p.getCity() + " | " +
+                            p.getCompanyLink() + " | " +
                             p.getType() + " | " +
                             p.getSalary() + " | " +
                             (p.isActive() ? "ATIVO" : "INATIVO")
@@ -132,7 +138,7 @@ public class PromoterController {
     }
 
     public void update(int id, String name, String phone, String uf, String city,
-                       String pix, String pixType, BigDecimal salary, String type) {
+                       String companyLink, String pix, String pixType, BigDecimal salary, String type) {
 
         Promoter p = promoterDAO.findById(id);
 
@@ -156,6 +162,10 @@ public class PromoterController {
             throw new RuntimeException("Informe a cidade do promotor.");
         }
 
+        if (!isValidCompanyLink(companyLink)) {
+            throw new RuntimeException("Vínculo inválido. Use AT ou TEJO.");
+        }
+
         if (!isValidPromoterType(type)) {
             throw new RuntimeException("Tipo inválido. Use CLT, MEI ou FERISTA.");
         }
@@ -168,6 +178,7 @@ public class PromoterController {
         p.setPhone(phone.trim());
         p.setUf(uf.trim().toUpperCase());
         p.setCity(city.trim());
+        p.setCompanyLink(companyLink.trim().toUpperCase());
         p.setPix(formatNullable(pix));
         p.setPixType(formatNullable(pixType));
         p.setSalary(salary);
@@ -200,6 +211,12 @@ public class PromoterController {
         p.setActive(true);
 
         promoterDAO.update(p);
+    }
+
+    private boolean isValidCompanyLink(String companyLink) {
+        return companyLink != null &&
+                (companyLink.equalsIgnoreCase("AT")
+                        || companyLink.equalsIgnoreCase("TEJO"));
     }
 
     private boolean isValidPromoterType(String type) {

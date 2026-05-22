@@ -341,6 +341,8 @@ public class Main {
         System.out.print("Cidade: ");
         String city = sc.nextLine().trim();
 
+        String companyLink = readCompanyLink(sc);
+
         System.out.print("PIX: ");
         String pix = sc.nextLine().trim();
 
@@ -355,7 +357,7 @@ public class Main {
         BigDecimal salary = readPositiveBigDecimal(sc, "Salário: ");
         String type = readPromoterType(sc);
 
-        controller.register(name, cpf, phone, uf, city, pix, pixType, dateBirth, salary, type);
+        controller.register(name, cpf, phone, uf, city, companyLink, pix, pixType, dateBirth, salary, type);
     }
 
     public static void updatePromoter(Scanner sc, PromoterController controller) {
@@ -372,6 +374,8 @@ public class Main {
         System.out.print("Nova cidade: ");
         String city = sc.nextLine().trim();
 
+        String companyLink = readCompanyLink(sc);
+
         System.out.print("Novo PIX: ");
         String pix = sc.nextLine().trim();
 
@@ -385,7 +389,7 @@ public class Main {
         BigDecimal salary = readPositiveBigDecimal(sc, "Novo salário: ");
         String type = readPromoterType(sc);
 
-        controller.update(id, name, phone, uf, city, pix, pixType, salary, type);
+        controller.update(id, name, phone, uf, city, companyLink, pix, pixType, salary, type);
     }
 
     public static void registerFixedExpense(Scanner sc, FixedExpenseController controller) {
@@ -443,8 +447,6 @@ public class Main {
 
     public static void markVariableExpenseAsPaid(Scanner sc, VariableExpenseController controller) {
         int id = readInt(sc, "ID da despesa variável: ");
-        LocalDate paymentDate = readDate(sc, "Data de pagamento (AAAA-MM-DD): ");
-
         controller.markAsPaid(id);
     }
 
@@ -607,6 +609,19 @@ public class Main {
             }
 
             printError("Tipo inválido. Use CLT, MEI ou FERISTA.");
+        }
+    }
+
+    public static String readCompanyLink(Scanner sc) {
+        while (true) {
+            System.out.print("Vínculo (AT/TEJO): ");
+            String companyLink = sc.nextLine().trim().toUpperCase();
+
+            if (companyLink.equals("AT") || companyLink.equals("TEJO")) {
+                return companyLink;
+            }
+
+            printError("Vínculo inválido. Use AT ou TEJO.");
         }
     }
 
