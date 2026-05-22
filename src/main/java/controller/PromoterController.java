@@ -98,6 +98,14 @@ public class PromoterController {
         }
     }
 
+    public List<Promoter> searchByNameIncludingInactive(String name) {
+        if (name == null || name.isBlank()) {
+            return List.of();
+        }
+
+        return promoterDAO.findByNameIncludingInactive(name.trim());
+    }
+
     public List<Promoter> getAll() {
         return promoterDAO.findAll();
     }

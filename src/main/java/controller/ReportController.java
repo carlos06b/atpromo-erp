@@ -117,6 +117,7 @@ public class ReportController {
         validatePeriod(start, end);
 
         List<String> promoterLines = financePromoterDAO.findByPeriodWithPromoterName(start, end);
+        List<String> discountLines = financePromoterDAO.findDiscountsByPeriodWithPromoterName(start, end);
         List<FixedExpenseHistory> fixedExpenses = fixedExpenseHistoryDAO.findByPeriod(start, end);
         List<VariableExpense> variableExpenses = variableExpenseDAO.findByPeriod(start, end);
 
@@ -139,11 +140,20 @@ public class ReportController {
         appendMetric(report, "Total de saídas", totalExpenses);
         appendMetric(report, "Descontos aplicados", discounts);
 
-        appendSection(report, "LANÇAMENTOS DE PROMOTORES");
+        appendSection(report, "PAGAMENTOS A PROMOTORES");
         if (promoterLines.isEmpty()) {
-            report.append("Nenhum lançamento de promotor encontrado.\n");
+            report.append("Nenhum pagamento de promotor encontrado.\n");
         } else {
             for (String line : promoterLines) {
+                report.append("- ").append(line).append("\n");
+            }
+        }
+
+        appendSection(report, "DESCONTOS APLICADOS NA FOLHA");
+        if (discountLines.isEmpty()) {
+            report.append("Nenhum desconto aplicado encontrado.\n");
+        } else {
+            for (String line : discountLines) {
                 report.append("- ").append(line).append("\n");
             }
         }
@@ -244,7 +254,7 @@ public class ReportController {
         BigDecimal total = BigDecimal.ZERO;
 
         for (FixedExpenseHistory expense : fixedExpenseHistoryDAO.findByPeriod(start, end)) {
-            if (!"CANCELADO".equalsIgnoreCase(safe(expense.getStatus()))) {
+            if ("PAGO".equalsIgnoreCase(safe(expense.getStatus()))) {
                 total = total.add(nullToZero(expense.getAmount()));
             }
         }
@@ -256,7 +266,9 @@ public class ReportController {
         BigDecimal total = BigDecimal.ZERO;
 
         for (VariableExpense expense : variableExpenseDAO.findByPeriod(start, end)) {
-            total = total.add(nullToZero(expense.getAmount()));
+            if (expense.isStatus()) {
+                total = total.add(nullToZero(expense.getAmount()));
+            }
         }
 
         return total;

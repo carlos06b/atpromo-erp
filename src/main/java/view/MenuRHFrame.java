@@ -273,7 +273,7 @@ public class MenuRHFrame extends JFrame {
                 "Conferência de valores do período, promotores MEI, CLT e feristas, com apoio para pagamento.",
                 "Abrir folha",
                 new Color(70, 70, 70),
-                () -> new PayrollFrame()
+                () -> new PayrollFrame(user)
         ));
 
         grid.add(createRoutineCard());

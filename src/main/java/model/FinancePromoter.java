@@ -11,6 +11,7 @@ public class FinancePromoter {
     private BigDecimal amount;
     private LocalDate date;
     private String status;
+    private String description;
 
     public FinancePromoter() {
     }
@@ -22,6 +23,14 @@ public class FinancePromoter {
         this.idPromoter = idPromoter;
         this.status = status;
         this.type = type;
+    }
+
+    public String getDescription() {
+        return description;
+    }
+
+    public void setDescription(String description) {
+        this.description = description;
     }
 
     public int getId() {

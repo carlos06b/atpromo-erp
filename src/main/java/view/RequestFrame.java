@@ -262,10 +262,11 @@ public class RequestFrame extends JFrame {
 
             if (text.length() < 2) return;
 
-            List<Promoter> promoters = promoterController.searchByName(text);
+            List<Promoter> promoters = promoterController.searchByNameIncludingInactive(text);
 
             for (Promoter p : promoters) {
-                listModel.addElement(new PromoterItem(p.getId(), p.getName()));
+                String status = p.isActive() ? "ATIVO" : "INATIVO";
+                listModel.addElement(new PromoterItem(p.getId(), p.getName() + " - " + status));
             }
         });
 
@@ -409,7 +410,7 @@ public class RequestFrame extends JFrame {
 
         String promoterPix = "Não informado";
 
-        List<Promoter> promoters = promoterController.searchByName(promoter.toString());
+        List<Promoter> promoters = promoterController.searchByNameIncludingInactive(promoter.toString());
 
         if (!promoters.isEmpty()) {
             Promoter promoterData = promoters.get(0);

@@ -141,6 +141,35 @@ public class PromoterDAO {
         return null;
     }
 
+    public List<Promoter> findByNameIncludingInactive(String name) {
+
+        List<Promoter> list = new ArrayList<>();
+
+        String sql = """
+            SELECT *
+            FROM promoter
+            WHERE name LIKE ?
+            ORDER BY active DESC, name
+            """;
+
+        try (Connection conn = ConnectionFactory.getConnection();
+             PreparedStatement stmt = conn.prepareStatement(sql)) {
+
+            stmt.setString(1, "%" + name + "%");
+
+            ResultSet rs = stmt.executeQuery();
+
+            while (rs.next()) {
+                list.add(buildPromoter(rs));
+            }
+
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+
+        return list;
+    }
+
     public List<Promoter> findByName(String name) {
 
         List<Promoter> list = new ArrayList<>();

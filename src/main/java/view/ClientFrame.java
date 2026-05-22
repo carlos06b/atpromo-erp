@@ -401,7 +401,7 @@ public class ClientFrame extends JFrame {
             Client client = clientController.findById(id);
 
             JDialog dialog = new JDialog(this, "Detalhes da Indústria", true);
-            dialog.setSize(560, 520);
+            dialog.setSize(560, 550);
             dialog.setLocationRelativeTo(this);
             dialog.setResizable(false);
             dialog.setLayout(new BorderLayout());

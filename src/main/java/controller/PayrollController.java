@@ -102,6 +102,75 @@ public class PayrollController {
         return lines;
     }
 
+    public void registerDiscount(int promoterId, BigDecimal amount, LocalDate date, String description) {
+        Promoter promoter = promoterDAO.findById(promoterId);
+
+        if (promoter == null) {
+            throw new RuntimeException("Promotor não encontrado.");
+        }
+
+        if (amount == null || amount.compareTo(BigDecimal.ZERO) <= 0) {
+            throw new RuntimeException("O valor do desconto precisa ser maior que zero.");
+        }
+
+        if (date == null) {
+            throw new RuntimeException("Informe a data do desconto.");
+        }
+
+        if (description == null || description.trim().isEmpty()) {
+            throw new RuntimeException("Informe o motivo do desconto.");
+        }
+
+        FinancePromoter discount = new FinancePromoter();
+        discount.setIdPromoter(promoterId);
+        discount.setType("DESCONTO");
+        discount.setAmount(amount);
+        discount.setDescription(description.trim());
+        discount.setDate(date);
+        discount.setStatus("APLICADO");
+
+        financePromoterDAO.save(discount);
+    }
+
+    public void updateDiscount(int discountId, BigDecimal amount, LocalDate date, String description) {
+        if (amount == null || amount.compareTo(BigDecimal.ZERO) <= 0) {
+            throw new RuntimeException("O valor do desconto precisa ser maior que zero.");
+        }
+
+        if (date == null) {
+            throw new RuntimeException("Informe a data do desconto.");
+        }
+
+        if (description == null || description.trim().isEmpty()) {
+            throw new RuntimeException("Informe o motivo do desconto.");
+        }
+
+        financePromoterDAO.updateDiscount(
+                discountId,
+                amount,
+                description.trim(),
+                date
+        );
+    }
+
+    public void deleteDiscount(int discountId) {
+        financePromoterDAO.deleteDiscount(discountId);
+    }
+
+    public List<String> listDiscounts(LocalDate start, LocalDate end) {
+        if (start == null || end == null) {
+            throw new RuntimeException("Informe a data inicial e final.");
+        }
+
+        if (start.isAfter(end)) {
+            throw new RuntimeException("Data inicial não pode ser maior que a final.");
+        }
+
+        return financePromoterDAO.findDiscountsForPayroll(start, end);
+    }
+
+
+
     public String generatePayroll(LocalDate start, LocalDate end, String promoterType) {
         List<PayrollLine> lines = generatePayrollLines(start, end, promoterType);
 

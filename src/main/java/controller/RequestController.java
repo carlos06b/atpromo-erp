@@ -28,7 +28,6 @@ public class RequestController {
     static {
         TYPE_LABELS.put("BONIFICACAO", "Bonificação");
         TYPE_LABELS.put("AJUDA_CUSTO", "Ajuda de Custo");
-        TYPE_LABELS.put("DESCONTO", "Desconto");
         TYPE_LABELS.put("ASO", "ASO");
         TYPE_LABELS.put("EPI", "EPI");
         TYPE_LABELS.put("RESCISAO", "Rescisão");
@@ -194,7 +193,7 @@ public class RequestController {
                 finance.setType(r.getType());
                 finance.setAmount(r.getAmount());
                 finance.setDate(LocalDate.now());
-                finance.setStatus("PAGO");
+                finance.setStatus("DESCONTO".equalsIgnoreCase(r.getType()) ? "APLICADO" : "PAGO");
 
                 FinancePromoterDAO financeDAO = new FinancePromoterDAO();
                 financeDAO.save(finance);

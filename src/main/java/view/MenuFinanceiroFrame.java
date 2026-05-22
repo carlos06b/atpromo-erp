@@ -301,7 +301,7 @@ public class MenuFinanceiroFrame extends JFrame {
                 "Consulte valores, períodos, promotores e gere informações de pagamento com mais segurança.",
                 "Abrir folha",
                 BLACK,
-                () -> new PayrollFrame()
+                () -> new PayrollFrame(user)
         ));
 
         wrapper.add(sectionTitle, BorderLayout.NORTH);
